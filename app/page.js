@@ -134,20 +134,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex justify-between text-[10px] font-bold uppercase text-[#94a3b8] tracking-widest">
-              <span>Budget Cap</span>
-              <span className="text-[#4f46e5] font-bold">{maxPrice} OMR</span>
-            </div>
-            <input 
-              type="range" 
-              min="5" 
-              max="500" 
-              value={maxPrice} 
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
-              className="w-full h-1 bg-[#e2e8f0] rounded-lg appearance-none cursor-pointer accent-[#0f172a]" 
-            />
-          </div>
         </aside>
 
         {/* Right Product Grid Framework */}
