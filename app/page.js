@@ -12,7 +12,7 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState(500);
   const [loading, setLoading] = useState(true);
 
-  // Global Basket Memory State Node Setup
+  // Global Basket Multi-Click Counting Matrix
   const [cartItemsCount, setCartItemsCount] = useState(0);
 
   const MOCK_PRODUCTS = [
@@ -75,22 +75,19 @@ export default function HomePage() {
     setFilteredProducts(output);
   }, [selectedCategory, maxPrice, products]);
 
-  // Integrated Add to Cart Local Memory Tracker Function
+  // Integrated Add to Cart Local Memory Tracker (Pop-up Completely Blocked)
   const handleAddToCartAction = (productItem) => {
     setCartItemsCount(prevCount => prevCount + 1);
-    alert(`${productItem.name} added to cart successfully! Total basket items: ${cartItemsCount + 1}`);
   };
 
-  // WhatsApp Automated Direct Gateway Core Handler
-    // WhatsApp Automated Direct Gateway Core Handler (Fixed Personal Omani Number Integration)
+  // WhatsApp Gateway Direct Route Handler
   const triggerWhatsAppRedirect = () => {
-    const rawPhoneNumber = "96871009969"; // Aapka personal verified Omani number
+    const rawPhoneNumber = "96871009969"; 
     const encodedMessage = encodeURIComponent("Assalamu Alaikum Zonix Mart! Me aapki website se kuch premium products order karna chahta hun. Kindly help me with the checkout process.");
     window.open(`https://whatsapp.com{rawPhoneNumber}&text=${encodedMessage}`, '_blank');
   };
-
   return (
-    <div className="bg-[#f1f5f9] text-[#0f172a] min-h-screen flex flex-col font-sans antialiased selection:bg-[#4f46e5] selection:text-white">
+    <div className="bg-[#f1f5f9] text-[#0f172a] min-h-screen flex flex-col font-sans antialiased selection:bg-[#4f46e5] selection:text-white overflow-x-hidden">
       
       <Header onSearch={handleGlobalSearch} cartCount={cartItemsCount} />
 
@@ -105,6 +102,7 @@ export default function HomePage() {
           
           <div className="absolute inset-0 max-w-7xl mx-auto flex items-end pb-[5.5%] pl-[5%] sm:pl-[6%] md:pl-[6.5%]">
             <button 
+              type="button"
               onClick={() => document.getElementById('marketplace-view').scrollIntoView({ behavior: 'smooth' })}
               className="bg-transparent hover:bg-white/5 active:scale-95 text-transparent rounded-full w-[24%] sm:w-[16%] aspect-[3.7/1] cursor-pointer border border-transparent transition-all"
               title="Shop Now"
@@ -115,18 +113,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 1st Point Fixed: Minimalist Micro Trust Indicators with Custom Amber Glow Theme */}
-      <section className="bg-amber-500/5 border-b border-amber-500/10 py-4 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6 md:gap-16 text-xs text-amber-700 font-bold uppercase tracking-widest">
-          <div className="flex items-center gap-2"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
-          <div className="flex items-center gap-2"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
+      {/* 2nd Point Fixed: Pure CSS Infinite Continuous Non-Stop Marquee Strip Container */}
+      <section className="bg-amber-500/10 border-b border-amber-500/20 py-3.5 relative overflow-hidden w-full flex">
+        {/* Style block embedded directly for native pure keyframe infinite flow */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes infiniteMarqueeFlow {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee-stream {
+            display: flex;
+            white-space: nowrap;
+            animation: infiniteMarqueeFlow 18s linear infinite;
+          }
+        `}} />
+        
+        {/* Dual replication arrays stream to guarantee absolute seamless loop linkage */}
+        <div className="animate-marquee-stream flex gap-16 md:gap-32 shrink-0 pr-16 md:pr-32 text-xs text-amber-800 font-black uppercase tracking-widest">
+          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
+          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
+          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
+          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
+        </div>
+        <div className="animate-marquee-stream flex gap-16 md:gap-32 shrink-0 pr-16 md:pr-32 text-xs text-amber-800 font-black uppercase tracking-widest" aria-hidden="true">
+          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
+          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
+          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
+          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
         </div>
       </section>
 
-      {/* Main Unique Workspace Layout */}
+      {/* Main Workspace Layout */}
       <div id="marketplace-view" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
         
-        {/* Sleek Floating Filter Strip Menu (3rd Point Fixed: Navigation Hub Cleaned) */}
+        {/* Aside Departments Strip */}
         <aside className="bg-white/80 backdrop-blur-md border border-[#e2e8f0] p-5 rounded-xl h-fit space-y-4 lg:sticky lg:top-24 shadow-sm">
           <div className="space-y-2.5">
             <label className="block text-[10px] font-black uppercase text-[#94a3b8] tracking-widest">Store Departments</label>
@@ -159,7 +179,7 @@ export default function HomePage() {
             />
           </div>
         </aside>
-        {/* Right Product Grid Framework (2nd Point Fixed: Active Catalog box code completely flussh removed) */}
+        {/* Right Product Grid Framework */}
         <main className="lg:col-span-3 space-y-6">
           {filteredProducts.length === 0 ? (
             <div className="bg-white border border-[#e2e8f0] rounded-xl p-16 text-center text-[#64748b] text-xs font-normal tracking-wide shadow-sm">
@@ -212,12 +232,12 @@ export default function HomePage() {
                         </span>
                       </div>
 
-                      {/* 4th Point Fixed: Active Reactive Add To Cart Card Action Trigger Button */}
+                      {/* 1st Point Fixed: Silent Add to cart action with zero pop-up delay alerts */}
                       <button 
                         type="button"
                         onClick={() => handleAddToCartAction(product)}
                         disabled={parseInt(product.inventory || 0) === 0}
-                        className="bg-[#f8fafc] text-[#475569] hover:text-white hover:bg-[#ff4d00] border border-[#e2e8f0] hover:border-[#ff4d00] p-2.5 rounded-lg transition-all duration-200 disabled:opacity-30 disabled:hover:bg-[#f8fafc] disabled:hover:text-[#475569] transform active:scale-95 hover:shadow-md"
+                        className="bg-[#0f172a] text-white hover:bg-[#ff4d00] border border-[#0f172a] hover:border-[#ff4d00] p-2.5 rounded-lg transition-all duration-200 disabled:opacity-30 transform active:scale-95 hover:shadow-md"
                         title="Add to Cart"
                       >
                         <ShoppingCart className="h-4 w-4" />
@@ -232,7 +252,7 @@ export default function HomePage() {
         </main>
       </div>
 
-      {/* Floating Bottom Sticky Action Bar (4th Point Fixed: Full Functional Cart View Buttons & WhatsApp Connected) */}
+      {/* Floating Bottom Sticky Action Bar (Fixed real-time aggregate values live update) */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 p-3 flex items-center justify-between gap-4 shadow-xl">
         <button 
           type="button" 
