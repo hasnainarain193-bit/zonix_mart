@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { 
-  PlusCircle, Edit3, Trash2, Package, Users, ShoppingCart, RefreshCw, Layers, 
-  TrendingUp, AlertTriangle, Calendar, FileText, Download, CheckSquare, Square, 
-  Bell, Percent, Settings, Globe, ChevronRight, ArrowUpRight
+import {
+  PlusCircle, Edit3, Trash2, Package, Users, ShoppingCart, RefreshCw, Layers,
+  TrendingUp, AlertTriangle, Calendar, FileText, Download, CheckSquare, Square,
+  Bell, Percent, Settings, Globe, ChevronRight, ArrowUpRight, Star
 } from 'lucide-react';
 
 export default function AdvancedAdminDashboard() {
@@ -20,11 +20,11 @@ export default function AdvancedAdminDashboard() {
   const [newCategory, setNewCategory] = useState('');
   const [selectedItems, setSelectedSelectedItems] = useState([]);
 
-  // Form Submission Matrices
+  // Form Submission Matrices (With is_featured sorting token integrated)
   const [editMode, setEditMode] = useState(false);
   const [targetId, setTargetId] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', price_omr: '', inventory: '', category: 'Electronics', tags: '', image: '', description: ''
+    name: '', price_omr: '', inventory: '', category: 'Electronics', tags: '', image: '', description: '', is_featured: false
   });
 
   // Simulated Live Traffic Node Tracker Metrics
@@ -36,6 +36,7 @@ export default function AdvancedAdminDashboard() {
     const { data, error } = await supabase
       .from('products')
       .select('*')
+      .order('is_featured', { ascending: false }) // Rules setup to push featured items on top
       .order('created_at', { ascending: false });
     if (!error && data) setProducts(data);
     setLoading(false);
@@ -45,7 +46,7 @@ export default function AdvancedAdminDashboard() {
     fetchProducts();
     setSelectedDate(new Date().toISOString().split('T')[0]);
 
-    // Live statistics variation background simulator loop
+    // Live statistics variation background simulator loop (Self Refresh Engine)
     const interval = setInterval(() => {
       setLiveStats(prev => ({
         ...prev,
@@ -77,7 +78,7 @@ export default function AdvancedAdminDashboard() {
       alert("Image binary uploaded successfully to cloud bucket!");
     } catch (err) {
       alert(`Cloud Upload Error: ${err.message}`);
-    } {
+    } finally {
       setUploading(false);
     }
   };
@@ -104,19 +105,20 @@ export default function AdvancedAdminDashboard() {
       category: formData.category,
       tags: formData.tags,
       image: formData.image || 'https://unsplash.com',
-      description: formData.description
+      description: formData.description,
+      is_featured: formData.is_featured // Token to prioritize product on top position
     };
 
-    const { error } = editMode 
+    const { error } = editMode
       ? await supabase.from('products').update(payload).eq('id', targetId)
       : await supabase.from('products').insert([payload]);
 
     if (!error) {
       alert(editMode ? "Product updated successfully!" : "Product published safely to grid!");
-      setFormData({ name: '', price_omr: '', inventory: '', category: 'Electronics', tags: '', image: '', description: '' });
+      setFormData({ name: '', price_omr: '', inventory: '', category: 'Electronics', tags: '', image: '', description: '', is_featured: false });
       setEditMode(false);
       setTargetId(null);
-      fetchProducts(); // Automatic database refresh call statement execution
+      fetchProducts(); // Automatic live refresh call statement
     } else {
       alert(`Database Sync Exception: ${error.message}`);
     }
@@ -128,7 +130,8 @@ export default function AdvancedAdminDashboard() {
     setTargetId(prod.id);
     setFormData({
       name: prod.name, price_omr: prod.price_omr, inventory: prod.inventory,
-      category: prod.category, tags: prod.tags || '', image: prod.image || '', description: prod.description || ''
+      category: prod.category, tags: prod.tags || '', image: prod.image || '', description: prod.description || '',
+      is_featured: prod.is_featured || false
     });
     document.getElementById('product-creation-form').scrollIntoView({ behavior: 'smooth' });
   };
@@ -136,7 +139,7 @@ export default function AdvancedAdminDashboard() {
   const handleDelete = async (id) => {
     if (confirm("Are you sure you want to delete this item?")) {
       const { error } = await supabase.from('products').delete().eq('id', id);
-      if (!error) fetchProducts(); // Automatic realtime list refresh hook
+      if (!error) fetchProducts(); // Automated reactive view refresh trigger
     }
   };
 
@@ -153,7 +156,7 @@ export default function AdvancedAdminDashboard() {
       if (!error) {
         alert("Batch wipe execution done safely.");
         setSelectedSelectedItems([]);
-        fetchProducts(); // Automated table refresh invocation
+        fetchProducts(); // Automatic list reload parameter
       }
       setLoading(false);
     }
@@ -174,7 +177,7 @@ export default function AdvancedAdminDashboard() {
   const outOfStockCount = products.filter(item => (parseInt(item.inventory) || 0) === 0).length;
   return (
     <div className="bg-[#0b0f19] text-[#f1f5f9] min-h-screen flex flex-col md:flex-row font-sans antialiased selection:bg-[#ff4d00] selection:text-white">
-      
+     
       {/* Side Command Navigation Hub */}
       <aside className="w-full md:w-64 bg-[#111827] border-b md:border-r border-[#1e293b]/40 p-6 flex flex-col justify-between shadow-xl relative z-20">
         <div className="space-y-8">
@@ -202,63 +205,63 @@ export default function AdvancedAdminDashboard() {
       </aside>
 
       {/* Main Core Controller Grid Space */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto space-y-8 relative z-10">
-        
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto space-y-6 relative z-10">
+       
         {/* Real-time Statistics Array Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
-          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-5 rounded-2xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-4 rounded-xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
             <div>
               <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest block">Active Users (Live)</span>
-              <span className="text-xl font-black text-indigo-400 block mt-1 animate-pulse">{liveStats.activeUsers} Online</span>
+              <span className="text-lg font-black text-indigo-400 block mt-0.5 animate-pulse">{liveStats.activeUsers} Online</span>
             </div>
-            <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400"><RefreshCw className="h-4 w-4 animate-spin" /></div>
+            <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400"><RefreshCw className="h-3.5 w-3.5 mercantile-spin" /></div>
           </div>
-          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-5 rounded-2xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
+          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-4 rounded-xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
             <div>
               <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest block">Daily Net Volume Sales</span>
-              <span className="text-xl font-black text-emerald-400 block mt-1">{liveStats.dailySales.toFixed(3)} OMR</span>
+              <span className="text-lg font-black text-emerald-400 block mt-0.5">{liveStats.dailySales.toFixed(3)} OMR</span>
             </div>
-            <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400"><TrendingUp className="h-4 w-4" /></div>
+            <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400"><TrendingUp className="h-3.5 w-3.5" /></div>
           </div>
-          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-5 rounded-2xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
+          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-4 rounded-xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
             <div>
               <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest block">Total Net SKUs</span>
-              <span className="text-xl font-black text-white block mt-1">{products.length} Items</span>
+              <span className="text-lg font-black text-white block mt-0.5">{products.length} Items</span>
             </div>
-            <div className="p-2.5 bg-slate-800 rounded-xl text-slate-300"><Layers className="h-4 w-4" /></div>
+            <div className="p-2 bg-slate-800 rounded-lg text-slate-300"><Layers className="h-3.5 w-3.5" /></div>
           </div>
-          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-5 rounded-2xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
+          <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-4 rounded-xl flex items-center justify-between shadow-2xl backdrop-blur-sm">
             <div>
               <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest block">Critical Out Of Stock</span>
-              <span className="text-xl font-black text-red-400 block mt-1">{outOfStockCount} SKUs</span>
+              <span className="text-lg font-black text-red-400 block mt-0.5">{outOfStockCount} SKUs</span>
             </div>
-            <div className="p-2.5 bg-red-500/10 rounded-xl text-red-400"><AlertTriangle className="h-4 w-4" /></div>
+            <div className="p-2 bg-red-500/10 rounded-lg text-red-400"><AlertTriangle className="h-3.5 w-3.5" /></div>
           </div>
         </div>
 
-        {/* Graphical Reports Presentation Canvas Mapping Layout */}
-        <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-6 rounded-2xl shadow-xl grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-4">
-            <h4 className="text-xs font-black uppercase text-[#64748b] tracking-widest flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-[#4f46e5]" /> Sales Realtime Traffic Report</h4>
-            <div className="h-28 bg-[#0b0f19] border border-[#1e293b]/60 rounded-xl flex items-end justify-between p-4 gap-3 relative shadow-inner">
-              <div className="w-full bg-indigo-600 h-[35%] rounded-t transition-all duration-500" /><div className="w-full bg-[#ff4d00] h-[65%] rounded-t transition-all duration-500" /><div className="w-full bg-emerald-500 h-[92%] rounded-t transition-all duration-500" />
-              <span className="absolute top-2 right-3 text-[9px] text-[#64748b] font-bold uppercase tracking-wider">Live Streaming Analytics Matrix</span>
+        {/* Graphical Reports Presentation Canvas - Chota & Compact Fix */}
+        <div className="bg-[#111827]/60 border border-[#1e293b]/40 p-4 rounded-2xl shadow-xl grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 space-y-2">
+            <h4 className="text-xs font-black uppercase text-[#64748b] tracking-widest flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5 text-[#4f46e5]" /> Sales Realtime Traffic Report</h4>
+            <div className="h-20 bg-[#0b0f19] border border-[#1e293b]/60 rounded-xl flex items-end justify-between p-3 gap-2 relative shadow-inner">
+              <div className="w-full bg-indigo-600 h-[35%] rounded-t" /><div className="w-full bg-[#ff4d00] h-[65%] rounded-t" /><div className="w-full bg-emerald-500 h-[92%] rounded-t" />
+              <span className="absolute top-1 right-2 text-[8px] text-[#64748b] font-bold uppercase tracking-wider">Live Sync</span>
             </div>
           </div>
-          <div className="space-y-3 flex flex-col justify-between">
-            <h4 className="text-xs font-black uppercase text-[#64748b] tracking-widest flex items-center gap-1.5"><Layers className="h-4 w-4 text-[#f59e0b]" /> Segment Allocation (Pie Mode)</h4>
-            <div className="w-20 h-20 mx-auto rounded-full border-8 border-indigo-500 border-r-[#ff4d00] border-b-slate-800 animate-spin duration-10000 flex items-center justify-center text-[9px] font-black text-slate-500">92% SYNC</div>
+          <div className="space-y-2 flex flex-col justify-center text-center">
+            <h4 className="text-[10px] font-black uppercase text-[#64748b] tracking-widest">Segment Allocation</h4>
+            <div className="w-10 h-10 mx-auto rounded-full border-4 border-indigo-500 border-r-[#ff4d00] border-b-slate-800 animate-spin duration-10000 flex items-center justify-center text-[8px] font-black text-slate-500">92%</div>
           </div>
         </div>
         {/* Dynamic Navigation Controllers Tab Distribution Parser */}
         {activeTab === 'products' && (
-          <div id="product-creation-form" className="space-y-8 animate-in fade-in duration-300">
+          <div id="product-creation-form" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+             
               {/* Product Sheet Registration Frame Form */}
               <div className="lg:col-span-2 bg-[#111827]/60 border border-[#1e293b]/40 p-6 rounded-2xl shadow-xl">
                 <h3 className="text-xs font-black text-white uppercase tracking-widest border-b border-[#1e293b]/40 pb-3 mb-5 flex items-center gap-2">
-                  <Layers className="text-[#ff4d00] h-4 w-4" /> {editMode ? "Modify live stock assets parameter" : "Deploy Fresh Oman Stock SKU"}
+                  <Layers className="text-[#ff4d00] h-4 w-4" /> {editMode ? "Modify Live Stock Asset Parameters" : "Deploy Fresh Oman Stock SKU"}
                 </h3>
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -296,7 +299,18 @@ export default function AdvancedAdminDashboard() {
 
                   <div className="sm:col-span-2">
                     <label className="block text-[10px] font-bold uppercase text-[#64748b] mb-1">Advance WYSIWYG Description Editor</label>
-                    <textarea rows="3" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-[#0b0f19] border border-[#1e293b]/60 rounded-xl p-3 text-sm text-white outline-none focus:border-[#ff4d00]" placeholder="Tabular rules description details portfolio..." />
+                    <textarea rows="3" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-[#0b0f19] border border-[#1e293b]/60 rounded-xl p-3 text-sm text-white outline-none focus:border-[#ff4d00]" placeholder="Specifications description details..." />
+                  </div>
+
+                  {/* Advanced Feature Integration: Push Product to Top Feature Toggle */}
+                  <div className="sm:col-span-2 flex items-center gap-2 bg-[#0b0f19] p-3 rounded-xl border border-[#1e293b]/60 select-none">
+                    <button type="button" onClick={() => setFormData({...formData, is_featured: !formData.is_featured})} className="text-indigo-400 hover:text-indigo-300 transition-colors">
+                      {formData.is_featured ? <CheckSquare className="h-4 w-4 text-[#ff4d00]" /> : <Square className="h-4 w-4" />}
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <Star className={`h-3.5 w-3.5 ${formData.is_featured ? 'text-[#ff4d00] fill-[#ff4d00]' : 'text-slate-500'}`} />
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">Bring Product on Top Position (Featured Priority Placement)</span>
+                    </div>
                   </div>
 
                   <div className="sm:col-span-2 flex gap-3 pt-2">
@@ -320,7 +334,6 @@ export default function AdvancedAdminDashboard() {
                 <div className="flex flex-col gap-1 pt-2">{categories.map((c, i) => <div key={i} className="text-xs font-bold text-[#94a3b8] bg-[#0b0f19] border border-[#1e293b]/40 p-2.5 rounded-xl flex items-center justify-between"><span>{c}</span><ChevronRight className="h-3 w-3 text-slate-600" /></div>)}</div>
               </div>
             </div>
-
             {/* Live Synchronized Active Table Matrix view */}
             <div className="space-y-4 pt-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#1e293b]/40 pb-3">
@@ -332,7 +345,7 @@ export default function AdvancedAdminDashboard() {
                     </button>
                   )}
                 </div>
-                
+               
                 {/* Advanced Calendar Integration Matrix */}
                 <div className="flex items-center gap-2 bg-[#111827] border border-[#1e293b]/60 px-4 py-2 rounded-xl shadow-lg">
                   <Calendar className="h-4 w-4 text-indigo-400" />
@@ -344,7 +357,7 @@ export default function AdvancedAdminDashboard() {
               <div className="overflow-x-auto border border-[#1e293b]/40 rounded-2xl bg-[#111827]/40 shadow-2xl backdrop-blur-sm">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                                       <tr className="bg-[#0b0f19] border-b border-[#1e293b]/40 text-[#64748b] font-bold text-[10px] uppercase tracking-wider">
+                    <tr className="bg-[#0b0f19] border-b border-[#1e293b]/40 text-[#64748b] font-bold text-[10px] uppercase tracking-wider">
                       <th className="p-4 w-12 text-center">Batch</th>
                       <th className="p-4">Visual</th>
                       <th className="p-4">Asset Title</th>
@@ -364,14 +377,17 @@ export default function AdvancedAdminDashboard() {
                         </td>
                         <td className="p-4"><img src={prod.image} alt={prod.name} className="w-10 h-10 object-cover rounded-xl border border-[#1e293b]/60" /></td>
                         <td className="p-4">
-                          <span className="font-bold text-white block text-sm">{prod.name}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-white block text-sm">{prod.name}</span>
+                            {prod.is_featured && <Star className="h-3 w-3 text-[#ff4d00] fill-[#ff4d00]" title="Priority Product" />}
+                          </div>
                           <span className="text-[10px] text-[#64748b] block font-mono mt-0.5 max-w-xs truncate">{prod.id}</span>
                         </td>
                         <td className="p-4"><span className="bg-[#0b0f19] text-[#94a3b8] border border-[#1e293b]/60 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">{prod.category}</span></td>
                         <td className="p-4 font-black text-white text-sm">{parseFloat(prod.price_omr || 0).toFixed(3)} <span className="text-[11px] text-[#ff4d00]">OMR</span></td>
                         <td className="p-4">
                           {parseInt(prod.inventory || 0) > 0 ? (
-                            <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/10">{prod.inventory} Units Available</span>
+                            <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/10">{prod.inventory} Units In Stock</span>
                           ) : (
                             <span className="text-red-400 font-black text-xs bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/10">Out of Stock</span>
                           )}

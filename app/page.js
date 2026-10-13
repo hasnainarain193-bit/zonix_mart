@@ -9,16 +9,30 @@ export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [maxPrice, setMaxPrice] = useState(500);
   const [loading, setLoading] = useState(true);
-
-  // Global Basket Multi-Click Counting Matrix
   const [cartItemsCount, setCartItemsCount] = useState(0);
+  
+  // Local cart memory states to track quantity counts on each specific product element card
+  const [localCartRegistry, setLocalCartRegistry] = useState({});
 
-  const MOCK_PRODUCTS = [
-    { id: '1', name: 'Premium Luxury Oud Perfume', price_omr: 45.000, inventory: 12, category: 'Perfumes', description: 'Premium Sourced Portfolio Item', image: 'https://unsplash.com' },
-    { id: '2', name: 'Zonix Elite Laptop Pro x16', price_omr: 389.900, inventory: 4, category: 'Electronics', description: 'Premium Sourced Portfolio Item', image: 'https://unsplash.com' }
+  const CATEGORY_TILES = [
+    { name: 'Electronics', image: 'https://unsplash.com' },
+    { name: 'Perfumes', image: 'https://unsplash.com' },
+    { name: 'Cat Products', image: 'https://unsplash.com' }
   ];
+
+  const syncCartMetrics = () => {
+    const savedCart = localStorage.getItem('zonix_cart_items');
+    if (savedCart) {
+      const items = JSON.parse(savedCart);
+      setCartItemsCount(items.reduce((sum, item) => sum + item.qty, 0));
+      
+      // Map item ids directly to current active quantities array
+      const localMapping = {};
+      items.forEach(i => { localMapping[i.id] = i.qty; });
+      setLocalCartRegistry(localMapping);
+    }
+  };
 
   const fetchStorefrontData = async () => {
     try {
@@ -26,18 +40,14 @@ export default function HomePage() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
-
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         setProducts(data);
         setFilteredProducts(data);
-      } else {
-        setProducts(MOCK_PRODUCTS);
-        setFilteredProducts(MOCK_PRODUCTS);
       }
     } catch (err) {
-      setProducts(MOCK_PRODUCTS);
-      setFilteredProducts(MOCK_PRODUCTS);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -45,206 +55,136 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchStorefrontData();
+    syncCartMetrics();
 
     const productChannel = supabase
-      .channel('schema-db-changes')
+      .channel('schema-changes-loop')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
         fetchStorefrontData();
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(productChannel);
-    };
+    return () => { supabase.removeChannel(productChannel); };
   }, []);
-
-  const handleGlobalSearch = (val) => {
-    const results = products.filter(p => 
-      p.name.toLowerCase().includes(val.toLowerCase()) || 
-      p.category.toLowerCase().includes(val.toLowerCase())
-    );
-    setFilteredProducts(results);
-  };
 
   useEffect(() => {
     let output = products;
     if (selectedCategory !== 'All') {
       output = output.filter(p => p.category === selectedCategory);
     }
-    output = output.filter(p => parseFloat(p.price_omr || 0) <= maxPrice);
     setFilteredProducts(output);
-  }, [selectedCategory, maxPrice, products]);
+  }, [selectedCategory, products]);
 
-  // Integrated Add to Cart Local Memory Tracker (Pop-up Completely Blocked)
-  const handleAddToCartAction = (productItem) => {
-    setCartItemsCount(prevCount => prevCount + 1);
+  const handleGlobalSearch = (val) => {
+    setFilteredProducts(products.filter(p => p.name.toLowerCase().includes(val.toLowerCase())));
   };
 
-  // WhatsApp Gateway Direct Route Handler
-  const triggerWhatsAppRedirect = () => {
-    const rawPhoneNumber = "96871009969"; 
-    const encodedMessage = encodeURIComponent("Assalamu Alaikum Zonix Mart! Me aapki website se kuch premium products order karna chahta hun. Kindly help me with the checkout process.");
-    window.open(`https://whatsapp.com{rawPhoneNumber}&text=${encodedMessage}`, '_blank');
+  const handleAddToCartAction = (e, productItem) => {
+    e.stopPropagation(); 
+    const savedCart = localStorage.getItem('zonix_cart_items') || '[]';
+    let currentItems = JSON.parse(savedCart);
+    
+    const existingIndex = currentItems.findIndex(item => item.id === productItem.id);
+    if (existingIndex > -1) {
+      currentItems[existingIndex].qty += 1;
+    } else {
+      currentItems.push({ ...productItem, qty: 1 });
+    }
+    
+    localStorage.setItem('zonix_cart_items', JSON.stringify(currentItems));
+    syncCartMetrics();
   };
+
   return (
-    <div className="bg-[#f1f5f9] text-[#0f172a] min-h-screen flex flex-col font-sans antialiased selection:bg-[#4f46e5] selection:text-white overflow-x-hidden">
-      
+    <div className="bg-[#f8fafc] text-[#0f172a] min-h-screen flex flex-col font-sans antialiased overflow-x-hidden">
       <Header onSearch={handleGlobalSearch} cartCount={cartItemsCount} />
 
-      {/* Controlled Smaller Height Banner Wrapper */}
       <section className="relative w-full max-h-[340px] sm:max-h-[420px] overflow-hidden bg-slate-950 border-b border-[#e2e8f0]">
-        <div className="w-full h-full relative flex items-center justify-center">
-          <img 
-            src="/hero-banner.png" 
-            alt="Zonix Mart Premium Banner" 
-            className="w-full h-full object-cover md:object-fill max-h-[340px] sm:max-h-[420px]"
-          />
-          
-          <div className="absolute inset-0 max-w-7xl mx-auto flex items-end pb-[5.5%] pl-[5%] sm:pl-[6%] md:pl-[6.5%]">
-            <button 
-              type="button"
-              onClick={() => document.getElementById('marketplace-view').scrollIntoView({ behavior: 'smooth' })}
-              className="bg-transparent hover:bg-white/5 active:scale-95 text-transparent rounded-full w-[24%] sm:w-[16%] aspect-[3.7/1] cursor-pointer border border-transparent transition-all"
-              title="Shop Now"
-            >
-              Shop Now
-            </button>
-          </div>
-        </div>
+        <img src="/hero-banner.png" alt="Zonix Mart Banner" className="w-full h-full object-cover max-h-[340px] sm:max-h-[420px]" />
       </section>
 
-      {/* 2nd Point Fixed: Pure CSS Infinite Continuous Non-Stop Marquee Strip Container */}
-      <section className="bg-amber-500/10 border-b border-amber-500/20 py-3.5 relative overflow-hidden w-full flex">
-        {/* Style block embedded directly for native pure keyframe infinite flow */}
+      <section className="bg-amber-500/10 border-b border-amber-500/20 py-3 relative overflow-hidden w-full flex">
         <style dangerouslySetInnerHTML={{__html: `
-          @keyframes infiniteMarqueeFlow {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-50%); }
-          }
-          .animate-marquee-stream {
-            display: flex;
-            white-space: nowrap;
-            animation: infiniteMarqueeFlow 18s linear infinite;
-          }
+          @keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+          .animate-marquee-stream { display: flex; white-space: nowrap; animation: marquee 16s linear infinite; }
         `}} />
-        
-        {/* Dual replication arrays stream to guarantee absolute seamless loop linkage */}
-        <div className="animate-marquee-stream flex gap-16 md:gap-32 shrink-0 pr-16 md:pr-32 text-xs text-amber-800 font-black uppercase tracking-widest">
-          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
-          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
-          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
-          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
-        </div>
-        <div className="animate-marquee-stream flex gap-16 md:gap-32 shrink-0 pr-16 md:pr-32 text-xs text-amber-800 font-black uppercase tracking-widest" aria-hidden="true">
-          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
-          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
-          <div className="flex items-center gap-3"><Truck className="text-amber-600 h-4 w-4" /> Fast Delivery Across Oman</div>
-          <div className="flex items-center gap-3"><ShieldCheck className="text-amber-600 h-4 w-4" /> Cash on Delivery Available</div>
+        <div className="animate-marquee-stream flex gap-16 text-[11px] text-amber-800 font-black uppercase shrink-0">
+          <div className="flex items-center gap-2"><Truck className="h-4 w-4" /> Fast Delivery Across Oman</div>
+          <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Cash on Delivery Available</div>
+          <div className="flex items-center gap-2"><Truck className="h-4 w-4" /> Fast Delivery Across Oman</div>
+          <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Cash on Delivery Available</div>
         </div>
       </section>
 
-      {/* Main Workspace Layout */}
-      <div id="marketplace-view" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Shop By Category Matrix Display */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 w-full text-center space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">Shop By Category</h2>
+          <div className="w-12 h-1 bg-[#ff4d00] mx-auto rounded-full" />
+        </div>
         
-        {/* Aside Departments Strip */}
-        <aside className="bg-white/80 backdrop-blur-md border border-[#e2e8f0] p-5 rounded-xl h-fit space-y-4 lg:sticky lg:top-24 shadow-sm">
-          <div className="space-y-2.5">
-            <label className="block text-[10px] font-black uppercase text-[#94a3b8] tracking-widest">Store Departments</label>
-            <div className="flex flex-wrap lg:flex-col gap-1.5">
-              {['All', 'Electronics', 'Perfumes', 'Cat Products'].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-left px-3.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${selectedCategory === cat ? 'bg-[#0f172a] text-white border-[#0f172a] shadow-sm' : 'bg-transparent text-[#64748b] hover:text-[#0f172a] border-transparent hover:border-[#cbd5e1]'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2.5 pt-2 border-t border-slate-100">
-            <div className="flex justify-between text-[10px] font-black uppercase text-[#94a3b8] tracking-widest">
-              <span>Budget Cap</span>
-              <span className="text-[#4f46e5] font-black">{maxPrice} OMR</span>
-            </div>
-            <input 
-              type="range" 
-              min="5" 
-              max="500" 
-              value={maxPrice} 
-              onChange={(e) => setMaxPrice(Number(e.target.value))}
-              className="w-full h-1 bg-[#e2e8f0] rounded-lg appearance-none cursor-pointer accent-[#0f172a]" 
-            />
-          </div>
-        </aside>
-        {/* Right Product Grid Framework */}
-        <main className="lg:col-span-3 space-y-6">
-          {filteredProducts.length === 0 ? (
-            <div className="bg-white border border-[#e2e8f0] rounded-xl p-16 text-center text-[#64748b] text-xs font-normal tracking-wide shadow-sm">
-              No products found matching criteria.
-            </div>
+        <div className="grid grid-cols-3 gap-3 sm:gap-6 max-w-3xl mx-auto">
+          {CATEGORY_TILES.map((tile, idx) => (
+            <button 
+              key={idx} 
+              type="button"
+              onClick={() => {
+                setSelectedCategory(selectedCategory === tile.name ? 'All' : tile.name);
+              }}
+              className={`group relative aspect-square rounded-2xl overflow-hidden border transition-all duration-300 transform hover:-translate-y-1 shadow-md bg-white ${selectedCategory === tile.name ? 'border-[#ff4d00] ring-4 ring-[#ff4d00]/10' : 'border-slate-200'}`}
+            >
+              <img src={tile.image} alt={tile.name} className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent flex items-end justify-center p-2 sm:p-4">
+                <span className="text-white text-[10px] sm:text-xs font-black uppercase tracking-wider block">{tile.name}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+      {/* Main Core Catalog Architecture Blocks - Sidebar clean removed, full grid area active */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full">
+        <main className="w-full">
+          {loading ? (
+            <div className="w-full text-center py-20 text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Syncing catalog rows...</div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="bg-white border rounded-xl p-16 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">No stock found inside department matrix.</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {filteredProducts.map((product) => (
                 <div 
                   key={product.id} 
-                  className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-1 hover:border-[#0f172a]/20 hover:shadow-[0_12px_24px_rgba(15,23,42,0.04)] flex flex-col justify-between group"
+                  onClick={() => window.location.href = `/product/${product.id}`}
+                  className="bg-white border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between group cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:border-slate-300"
                 >
-                  {/* Photo Space */}
                   <div className="relative aspect-square w-full bg-[#f8fafc] overflow-hidden">
-                    <img 
-                      src={product.image || 'https://unsplash.com'} 
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
-                    />
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500" />
+                    <span className="absolute top-2 left-2 bg-slate-900 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-sm">{product.category}</span>
                     
-                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md border border-[#e2e8f0] text-[#64748b] text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md shadow-sm">
-                      {product.category}
-                    </span>
-
-                    {parseInt(product.inventory || 0) === 0 && (
-                      <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center">
-                        <span className="bg-red-50 border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-md">
-                          Out of Stock
-                        </span>
-                      </div>
+                    {/* Realtime Quantity Added Suffix Badge overlay element */}
+                    {localCartRegistry[product.id] && (
+                      <span className="absolute top-2 right-2 bg-gradient-to-r from-amber-500 to-amber-600 border border-amber-600 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-lg shadow-md animate-in scale-in">
+                        {localCartRegistry[product.id]} Added
+                      </span>
                     )}
                   </div>
-
-                  {/* Details Framework */}
-                  <div className="p-4 flex-1 flex flex-col justify-between gap-4">
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-[#0f172a] group-hover:text-[#4f46e5] transition-colors text-sm tracking-wide line-clamp-1">
-                        {product.name}
-                      </h4>
-                      <p className="text-[10px] text-[#94a3b8] font-normal tracking-wide truncate">
-                        {product.description || 'Premium Sourced Portfolio Item'}
-                      </p>
+                  
+                  <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-bold text-[#0f172a] group-hover:text-indigo-600 transition-colors text-xs sm:text-sm line-clamp-1 tracking-wide">{product.name}</h4>
+                      <p className="text-[9px] text-[#94a3b8] truncate font-medium">{product.description || 'Premium Portfolio Item'}</p>
                     </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-[#f1f5f9]">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-bold uppercase text-[#94a3b8] tracking-widest">Pricing</span>
-                        <span className="text-base font-black text-[#0f172a] tracking-tight mt-0.5">
-                          {parseFloat(product.price_omr || 0).toFixed(3)} <span className="text-xs text-[#ff4d00] font-bold">OMR</span>
-                        </span>
-                      </div>
-
-                      {/* 1st Point Fixed: Silent Add to cart action with zero pop-up delay alerts */}
+                    
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="font-mono text-xs sm:text-sm font-black text-[#0f172a]">{parseFloat(product.price_omr || 0).toFixed(3)} <span className="text-[9px] text-[#ff4d00] font-bold">OMR</span></span>
                       <button 
                         type="button"
-                        onClick={() => handleAddToCartAction(product)}
-                        disabled={parseInt(product.inventory || 0) === 0}
-                        className="bg-[#0f172a] text-white hover:bg-[#ff4d00] border border-[#0f172a] hover:border-[#ff4d00] p-2.5 rounded-lg transition-all duration-200 disabled:opacity-30 transform active:scale-95 hover:shadow-md"
-                        title="Add to Cart"
+                        onClick={(e) => handleAddToCartAction(e, product)}
+                        className="bg-[#0f172a] hover:bg-[#ff4d00] text-white p-2 rounded-xl transition-all duration-200"
                       >
-                        <ShoppingCart className="h-4 w-4" />
+                        <ShoppingCart className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
-
                 </div>
               ))}
             </div>
@@ -252,30 +192,14 @@ export default function HomePage() {
         </main>
       </div>
 
-      {/* Floating Bottom Sticky Action Bar (Fixed real-time aggregate values live update) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 p-3 flex items-center justify-between gap-4 shadow-xl">
-        <button 
-          type="button" 
-          onClick={triggerWhatsAppRedirect}
-          className="bg-[#12a500] hover:bg-[#0f8c00] text-white font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-full flex items-center gap-2 transition-all shadow-md transform active:scale-95"
-        >
-          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-          <span>WhatsApp Support</span>
-        </button>
-
-        <button 
-          type="button"
-          onClick={() => alert(`Redirecting to payment logs framework! Active items count inside your storage: ${cartItemsCount}`)}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-widest px-6 py-3 rounded-full flex items-center gap-2 transition-all shadow-lg transform active:scale-95"
-        >
-          <ShoppingCart className="h-4 w-4" />
-          <span>Add to Cart / View Basket ({cartItemsCount})</span>
+      {/* Floating Bottom Sticky Navigation strip view */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 p-3 flex items-center justify-between gap-4 shadow-2xl">
+        <button type="button" onClick={() => window.open('https://whatsapp.com', '_blank')} className="bg-[#12a500] hover:bg-[#0f8c00] text-white font-bold text-xs uppercase px-5 py-2.5 rounded-full flex items-center gap-1.5 shadow-md">WhatsApp Support</button>
+        <button type="button" onClick={() => window.location.href='/cart'} className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-widest px-6 py-2.5 rounded-full flex items-center gap-1.5">
+          <ShoppingCart className="h-4 w-4" /> <span>View Basket ({cartItemsCount})</span>
         </button>
       </div>
-
-      <div className="pb-16 bg-[#f1f5f9]">
-        <Footer />
-      </div>
+      <div className="pb-12 bg-white"><Footer /></div>
     </div>
   );
 }
