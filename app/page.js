@@ -148,7 +148,7 @@ export default function HomePage() {
     <div className="bg-[#f8fafc] text-[#0f172a] min-h-screen font-sans antialiased selection:bg-[#ff4d00] selection:text-white">
       
       {/* 1. MASTER INTERACTIVE NAVIGATION HEADER BAR (Color Changed to Pure Dark Black) */}
-      <header className="w-full bg-[#0b0f19] text-white sticky top-0 z-50 shadow-md border-b border-slate-800/50">
+      <header className="w-full bg-[#dbdcdf] text-white sticky top-0 z-50 shadow-md border-b border-slate-800/50">
         <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setSelectedCategory('All')}>
             <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#ff4d00] to-[#ffaa00] flex items-center justify-center shadow">
