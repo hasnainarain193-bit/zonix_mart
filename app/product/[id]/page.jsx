@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ShoppingCart, ShieldCheck, Truck, ChevronLeft, Layers, Star } from 'lucide-react';
+export const dynamic = "force-dynamic";
 
 export default function ProductDetailsPage({ params: paramsPromise }) {
   // FIXED: Unwrap the async promise node using native React runtime unwrap tool parameters
