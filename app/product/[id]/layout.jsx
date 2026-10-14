@@ -1,7 +1,10 @@
-// 👑 NEXT.JS MASTER COMPILER OVERRIDE FOR DYNAMIC PRODUCTS FLOW
-export const dynamic = "force-dynamic";
-export const dynamicParams = true;
+"use client";
+import React, { Suspense } from 'react';
 
 export default function ProductLayout({ children }) {
-  return <>{children}</>;
+  return (
+    <Suspense fallback={<div className="text-center p-20 text-xs font-bold text-slate-400 font-mono uppercase">Initializing Layout Matrix...</div>}>
+      {children}
+    </Suspense>
+  );
 }
