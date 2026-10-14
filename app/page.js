@@ -236,6 +236,15 @@ export default function HomePage() {
                   </div>
                 </div>
               ) : (
+                <button
+                  type="button"
+                  onClick={triggerLoginRedirect}
+                  className="flex items-center gap-1.5 bg-[#ff4d00] hover:bg-[#ffaa00] text-white text-[10px] font-black uppercase px-2.5 py-1 rounded transition-all shadow-sm"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Login
+                </button>
+              )}
             </div>
 
             <Heart className="w-5 h-5 hover:text-[#ff4d00] cursor-pointer transition-colors hidden md:block text-slate-700" onClick={() => window.location.href = '/wishlist'} />
