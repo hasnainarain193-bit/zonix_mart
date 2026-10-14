@@ -10,22 +10,22 @@ const Footer = () => (
 );
 
 export default function HomePage() {
-  // Core Cloud Synchronizer Hooks
+  // Core Cloud Realtime Sync State Nodes
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Filter Token Interceptors
+  // Operational State Matrices Filters
   const [selectedCategory, setSelectedCategory] = useState('All');
-
-  // New Cart Management Matrix (Keeps track of quantity per product ID)
   const [cartLedger, setCartLedger] = useState({});
-
-  // Customer Authentication Session State Nodes
   const [customer, setCustomer] = useState(null);
 
-  // Fetch Master Sourcing Pipeline Data Tracks
+  // Customer Personal Orders Folder History Trackers
+  const [showMyOrdersModal, setShowMyOrdersModal] = useState(false);
+  const [customerOrdersList, setCustomerOrdersList] = useState([]);
+  const [fetchingCustomerOrders, setFetchingCustomerOrders] = useState(false);
+
   const fetchStorefrontData = async () => {
     setLoading(true);
     try {
@@ -48,17 +48,32 @@ export default function HomePage() {
         .order('created_at', { ascending: false });
       if (!banErr && bans) setBanners(bans);
     } catch (err) {
-      console.error("Storefront Client Synchronization Error:", err);
+      console.error("Storefront Pipeline Sync Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Check Active Logged-in Session Profile
+  const fetchPersonalOrdersHistory = async (customerEmail) => {
+    if (!customerEmail) return;
+    setFetchingCustomerOrders(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_email', customerEmail)
+        .order('created_at', { ascending: false });
+      if (!error && data) setCustomerOrdersList(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFetchingCustomerOrders(false);
+    }
+  };
+
   const checkCustomerSession = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      // Use email prefix metadata or metadata display name as customer name target value
       const customerName = user.user_metadata?.full_name || user.email.split('@')[0];
       setCustomer({ name: customerName, email: user.email });
     }
@@ -68,7 +83,12 @@ export default function HomePage() {
     fetchStorefrontData();
     checkCustomerSession();
 
-    // Listen for authentication changes live
+    // Load persistent cart choices tracking items on render node init
+    const savedCart = localStorage.getItem('zonix_cart_ledger');
+    if (savedCart) {
+      try { setCartLedger(JSON.parse(savedCart)); } catch (e) { console.error(e); }
+    }
+
     const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const customerName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
@@ -91,28 +111,33 @@ export default function HomePage() {
     };
   }, []);
 
-  // Popup-free Add to Cart execution flow sequence
+  useEffect(() => {
+    if (customer?.email) {
+      fetchPersonalOrdersHistory(customer.email);
+    } else {
+      setCustomerOrdersList([]);
+    }
+  }, [customer]);
+
   const handleAddToCart = (productId) => {
-    setCartLedger(prev => ({
-      ...prev,
-      [productId]: (prev[productId] || 0) + 1
-    }));
+    setCartLedger(prev => {
+      const updatedCart = { ...prev, [productId]: (prev[productId] || 0) + 1 };
+      localStorage.setItem('zonix_cart_ledger', JSON.stringify(updatedCart));
+      return updatedCart;
+    });
   };
 
-  // Simulated Login Call Action Route Trigger
-  const triggerLoginRedirect = () => {
-    if (customer) return; // Already verified log session
-    window.location.href = '/login';
-  };
-
-  // Sign out customer logging track
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setCustomer(null);
     alert("Logged out successfully from Zonix Mart.");
   };
 
-  // Calculate global total item counts dynamically inside header basket
+  const triggerLoginRedirect = () => {
+    if (customer) return;
+    window.location.href = '/login';
+  };
+
   const totalCartItemsCount = Object.values(cartLedger).reduce((sum, qty) => sum + qty, 0);
 
   const filteredProducts = selectedCategory === 'All'
@@ -122,8 +147,8 @@ export default function HomePage() {
   return (
     <div className="bg-[#f8fafc] text-[#0f172a] min-h-screen font-sans antialiased selection:bg-[#ff4d00] selection:text-white">
       
-                {/* 1. MASTER INTERACTIVE NAVIGATION HEADER BAR (Color Changed to Pure Dark Black) */}
-      <header className="w-full bg-[rgb(21,6,94)] text-white sticky top-0 z-50 shadow-md border-b border-slate-800/50">
+      {/* 1. MASTER INTERACTIVE NAVIGATION HEADER BAR (Color Changed to Pure Dark Black) */}
+      <header className="w-full bg-[#0b0f19] text-white sticky top-0 z-50 shadow-md border-b border-slate-800/50">
         <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setSelectedCategory('All')}>
             <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#ff4d00] to-[#ffaa00] flex items-center justify-center shadow">
@@ -152,6 +177,18 @@ export default function HomePage() {
                       Admin Panel
                     </button>
                   )}
+
+                  {/* 🛍️ CLIENT CUSTOMER "MY ORDERS" TRIGGER LINK BUTTON */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchPersonalOrdersHistory(customer.email);
+                      setShowMyOrdersModal(true);
+                    }}
+                    className="bg-slate-700/60 hover:bg-slate-700 text-[#ff4d00] text-[11px] font-black uppercase px-2.5 py-1 rounded-md transition-all border border-slate-600/40"
+                  >
+                    My Orders
+                  </button>
                   
                   <span className="text-xs font-bold text-white flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -189,15 +226,15 @@ export default function HomePage() {
           <img 
             src={banners.length > 0 && banners[0]?.image ? banners[0].image : 'https://unsplash.com'} 
             alt="Hero Promotional Poster" 
-            className="w-full h-full object-cover opacity-85"
+            className="w-full h-full object-cover opacity-90"
             onError={(e) => { e.target.src = 'https://unsplash.com'; }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent flex flex-col justify-center p-6 md:p-12">
-            <span className="px-2.5 py-0.5 bg-[#ff4d00] text-white text-[10px] font-bold uppercase rounded w-fit tracking-wider mb-3">Zonix Mega Campaign Live</span>
+          <div className="absolute inset-0 bg-gradient-to-r flex flex-col justify-center p-6 md:p-12">
+            {/* <span className="px-2.5 py-0.5 bg-[#ff4d00] text-white text-[10px] font-bold uppercase rounded w-fit tracking-wider mb-3">Zonix Mega Campaign Live</span>
             <h2 className="text-xl md:text-4xl font-black text-white max-w-xl leading-tight uppercase tracking-tight">
               {banners.length > 0 && banners[0]?.title ? banners[0].title : 'Discover Our Premium Exclusive Collections'}
-            </h2>
-            <p className="text-xs text-slate-300 mt-2 max-w-sm hidden sm:block">Experience high-speed shopping with automatic backend database synchronization pipelines.</p>
+            </h2> */}
+            {/* <p className="text-xs text-slate-300 mt-2 max-w-sm hidden sm:block">Experience high-speed shopping with automatic backend database synchronization pipelines.</p> */}
           </div>
         </div>
       </section>
@@ -279,22 +316,14 @@ export default function HomePage() {
                   <div className="absolute top-2 left-2 z-10 bg-[#0f172a] text-white px-2 py-0.5 rounded text-[9px] font-black uppercase shadow">
                     {prod.category}
                   </div>
-                  {/* Product Display Image Visual Layout Element */}
                   <div className="h-44 w-full overflow-hidden relative bg-slate-50">
-                    <img 
-                      src={prod.image} 
-                      alt={prod.name} 
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300" 
-                      onError={(e) => { e.target.src = 'https://unsplash.com'; }}
-                    />
+                    <img src={prod.image} alt={prod.name} className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300" onError={(e) => { e.target.src = 'https://unsplash.com'; }} />
                     {isOutOfStock && (
                       <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center">
                         <span className="px-3 py-1.5 bg-rose-500 text-white font-black text-[10px] rounded-lg shadow-md">OUT OF STOCK</span>
                       </div>
                     )}
                   </div>
-
-                  {/* Product Content Details Metadata Block Box */}
                   <div className="p-3 flex-1 flex flex-col justify-between gap-3">
                     <div>
                       <h4 className="font-bold text-xs text-slate-800 line-clamp-1">{prod.name}</h4>
@@ -350,6 +379,59 @@ export default function HomePage() {
       <div className="pb-12 bg-white">
         <Footer />
       </div>
+
+      {/* 👑 CLIENT CUSTOMER PERSONAL ORDERS VIEW MODAL OVERLAY POPUP */}
+      {showMyOrdersModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 selection:bg-[#ff4d00] selection:text-white">
+          <div className="bg-[#111827] border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-5 border-b border-slate-800/80 flex justify-between items-center bg-[#111827]">
+              <div>
+                <h3 className="font-black text-sm text-white uppercase tracking-wider flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#ff4d00]" />
+                  Your Shopping Purchase History Folder
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">Secure live repository mapping tracks for customer: {customer?.email}</p>
+              </div>
+              <button type="button" onClick={() => setShowMyOrdersModal(false)} className="text-slate-400 hover:text-white text-xs font-black bg-slate-800 hover:bg-slate-700/80 px-3 py-1.5 rounded-xl transition-all border border-slate-700/40">
+                Close History
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 bg-[#0b0f19]/40 flex-1">
+              {fetchingCustomerOrders ? (
+                <div className="text-center p-12 text-xs font-bold text-slate-400 animate-pulse uppercase">Syncing Personal Order Streams...</div>
+              ) : customerOrdersList.length === 0 ? (
+                <div className="p-12 border border-dashed border-slate-800 text-center rounded-xl max-w-sm mx-auto bg-[#111827]/40">
+                  <Layers className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                  <h5 className="text-xs font-black text-slate-400 uppercase">No orders configuration logged.</h5>
+                  <p className="text-[11px] text-slate-500 mt-1">Aapne is account credentials session par abhi tak Zonix Mart se koi item purchase nahi kiya hai.</p>
+                </div>
+              ) : (
+                customerOrdersList.map((ord) => (
+                  <div key={ord.id} className="bg-[#111827] border border-slate-800/60 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-slate-700/60">
+                    <div className="space-y-1.5 flex-1 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2 py-0.5 bg-[#0b0f19] border border-slate-800 font-mono font-black text-[10px] text-[#ff4d00] rounded">ORDER TOKEN ID: #{ord.id}</span>
+                        <span className="text-[10px] font-medium text-slate-500 font-mono ml-auto sm:ml-0">{new Date(ord.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <div className="text-xs font-bold text-white leading-relaxed line-clamp-2 bg-[#0b0f19]/30 p-2 rounded-lg border border-slate-800/40">
+                        {ord.product_name}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate"><span className="font-semibold text-slate-500">Destination:</span> {ord.customer_address}</div>
+                    </div>
+                    <div className="flex sm:flex-col items-baseline sm:items-end justify-between sm:justify-center w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/40">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Total Amount</span>
+                      <span className="font-mono font-black text-sm text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded-lg border border-emerald-500/10 mt-0.5">
+                        {parseFloat(ord.total_price_omr || 0).toFixed(3)} <span className="text-[10px] font-sans font-bold text-slate-500">OMR</span>
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

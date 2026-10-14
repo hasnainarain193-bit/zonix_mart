@@ -3,51 +3,91 @@ import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { CreditCard, Trash2, ShoppingBag, ShieldCheck, ArrowRight, Truck } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function CartCheckoutPage() {
-  const [cartItems, setCartItems] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('cod'); // options: cod, visa
+   const [cartLedger, setCartLedger] = useState({});
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '', cardNumber: '', cardExpiry: '', cardCvc: '' });
   const [loading, setLoading] = useState(false);
 
+  // 1. Read persistent ledger data and fetch core catalog entries
   useEffect(() => {
-    const savedCart = localStorage.getItem('zonix_cart_items');
-    if (savedCart) setCartItems(JSON.parse(savedCart));
+    const savedCart = localStorage.getItem('zonix_cart_ledger');
+    if (savedCart) {
+      try { setCartLedger(JSON.parse(savedCart)); } catch (e) { console.error(e); }
+    }
+
+    const fetchCatalogForCart = async () => {
+      const { data, error } = await supabase.from('products').select('*');
+      if (!error && data) setProducts(data);
+      setLoadingProducts(false);
+    };
+    fetchCatalogForCart();
   }, []);
 
+  // 2. Map local ledger weights dynamically into functional item arrays
+  const cartItems = products.filter(p => cartLedger[p.id] > 0).map(p => ({
+    id: p.id,
+    name: p.name,
+    image: p.image,
+    price_omr: p.price_omr,
+    qty: cartLedger[p.id],
+    article_no: p.article_no
+  }));
+
   const calculateSubtotal = () => cartItems.reduce((sum, item) => sum + (parseFloat(item.price_omr) * item.qty), 0);
+
+  // 3. Sync quantity state modifiers back to browser storage
   const handleQtyChange = (id, delta) => {
-    const updated = cartItems.map(item => item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item);
-    setCartItems(updated);
-    localStorage.setItem('zonix_cart_items', JSON.stringify(updated));
+    setCartLedger(prev => {
+      const currentQty = prev[id] || 0;
+      const newQty = Math.max(0, currentQty + delta);
+      const updatedCart = { ...prev, [id]: newQty };
+      if (newQty === 0) delete updatedCart[id];
+      localStorage.setItem('zonix_cart_ledger', JSON.stringify(updatedCart));
+      return updatedCart;
+    });
   };
 
   const handleRemoveItem = (id) => {
-    const updated = cartItems.filter(item => item.id !== id);
-    setCartItems(updated);
-    localStorage.setItem('zonix_cart_items', JSON.stringify(updated));
+    setCartLedger(prev => {
+      const updatedCart = { ...prev };
+      delete updatedCart[id];
+      localStorage.setItem('zonix_cart_ledger', JSON.stringify(updatedCart));
+      return updatedCart;
+    });
   };
 
+  // 4. Secure checkout submission directly to orders ledger table
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (cartItems.length === 0) return alert("Your basket ledger is empty.");
     setLoading(true);
 
     try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer: formData, orderItems: cartItems, totalAmount: calculateSubtotal(), method: paymentMethod })
-      });
-
-      if (response.ok) {
-        alert(paymentMethod === 'cod' ? "Order placed successfully via Cash on Delivery!" : "Visa Transaction Authorized successfully!");
-        localStorage.removeItem('zonix_cart_items');
-        setCartItems([]);
-        window.location.href = '/';
-      } else {
-        alert("Transaction transmission failed. Check API loops.");
+      // Loop and batch save order elements directly into Supabase tables
+      for (const item of cartItems) {
+        const payload = {
+          customer_name: formData.name,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+          customer_address: formData.address,
+          product_name: item.name,
+          product_image: item.image,
+          product_article: item.article_no || 'GEN-SKU',
+          total_price_omr: parseFloat(item.price_omr) * item.qty
+        };
+        const { error } = await supabase.from('orders').insert([payload]);
+        if (error) throw error;
       }
+
+      alert(paymentMethod === 'cod' ? "Order placed successfully via Cash on Delivery!" : "Visa Transaction Authorized successfully!");
+      localStorage.removeItem('zonix_cart_ledger');
+      setCartLedger({});
+      window.location.href = '/';
     } catch (err) {
       alert(`Checkout Error: ${err.message}`);
     } finally {

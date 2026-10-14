@@ -29,7 +29,7 @@ export default function UniversalAuthPage() {
       if (data?.user?.email === 'hasnainarain193@gmail.com') {
         document.cookie = "zonix_admin_auth=authorized_hasnainarain193; path=/; max-age=86400; SameSite=Strict";
         alert("Welcome Back Admin! Refreshing control routing framework nodes...");
-        window.location.href = "/admin"; // Hardware level system refresh and strict administrative route redirect
+        window.location.href = "/"; // Hardware level system refresh and strict administrative route redirect
       } else {
         alert("Login Successful! Syncing ecosystem nodes grid...");
         window.location.href = "/"; // Direct automatic refresh landing to home storefront matrix
@@ -87,19 +87,46 @@ export default function UniversalAuthPage() {
           {viewMode === 'register' && (
             <div>
               <label className="block text-[10px] font-bold uppercase text-[#64748b] mb-1">Full Name</label>
-              <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-3 text-sm focus:border-[#4f46e5] outline-none shadow-inner" placeholder="Your Name" disabled={loading} />
+             <input
+                type="text"
+                 required
+                 value={fullName}
+                 onChange={(e) => setFullName(e.target.value)}
+                 className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white placeholder-slate-500 focus:border-[#4f46e5] outline-none shadow-inner text-sm disabled:opacity-50"
+                 placeholder="Your Name"
+                 disabled={loading}
+               />
             </div>
           )}
 
           <div>
             <label className="block text-[10px] font-bold uppercase text-[#64748b] mb-1">Email Address</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-3 text-sm focus:border-[#4f46e5] outline-none shadow-inner" placeholder="name@example.com" disabled={loading} />
+            
+            <input
+             type="email"
+             required
+             value={email}
+             onChange={(e) => setEmail(e.target.value)}
+             className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white placeholder-slate-500 focus:border-[#4f46e5] outline-none shadow-inner text-sm disabled:opacity-50"
+             placeholder="name@example.com"
+             disabled={loading}
+             />
+
           </div>
 
           {viewMode !== 'forgot' && (
             <div>
               <label className="block text-[10px] font-bold uppercase text-[#64748b] mb-1">Account Password</label>
-              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl p-3 text-sm focus:border-[#4f46e5] outline-none shadow-inner" placeholder="••••••••" disabled={loading} />
+              <input
+                type="password"
+                required
+                 value={password}
+                 onChange={(e) => setPassword(e.target.value)}
+                 className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white placeholder-slate-500 focus:border-[#4f46e5] outline-none shadow-inner text-sm disabled:opacity-50"
+                 placeholder="••••••••"
+                 disabled={loading}
+                 />
+                 
             </div>
           )}
 
