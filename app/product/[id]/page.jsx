@@ -4,12 +4,9 @@ import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { ShoppingCart, ShieldCheck, Truck, ChevronLeft, Layers, Star } from 'lucide-react';
-export const dynamic = "force-dynamic";
-
+// 👑 FIXED VERCEL COMPILER LINES FOR CLIENT COMPONENT
 export default function ProductDetailsPage({ params: paramsPromise }) {
-  // FIXED: Unwrap the async promise node using native React runtime unwrap tool parameters
   const params = React.use(paramsPromise);
-
   const [product, setProduct] = useState(null);
   const [relatedItems, setRelatedItems] = useState([]);
   const [loading, setLoading] = useState(true);
