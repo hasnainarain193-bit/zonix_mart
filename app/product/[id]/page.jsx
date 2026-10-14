@@ -1,4 +1,7 @@
 "use client";
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
