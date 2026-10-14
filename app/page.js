@@ -190,7 +190,7 @@ export default function HomePage() {
           <div className="w-full md:flex flex-1 max-w-md relative">
             <input
               type="text"
-              placeholder="Search for products, article numbers or premium perfumes..."
+              placeholder="Search for products..."
               className="w-full px-4 py-2 bg-[#0b0f19] border border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#ff4d00] text-slate-200 transition-all placeholder-slate-400"
             />
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
