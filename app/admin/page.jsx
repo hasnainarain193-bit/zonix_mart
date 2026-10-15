@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 
 export default function AdminDashboardStation() {
+  // Authentication route guard parameters
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   // Core System Dynamic Ledger Storage Arrays
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,6 +27,9 @@ export default function AdminDashboardStation() {
   const [editMode, setEditMode] = useState(false);
   const [targetId, setTargetId] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedOrderNode, setSelectedOrderNode] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '', price_omr: '', inventory: '', category: '', 
@@ -38,6 +45,22 @@ export default function AdminDashboardStation() {
   // ERP Master Control Filtering States
   const [orderDateFilter, setOrderDateFilter] = useState('');
   const [liveStats, setLiveStats] = useState({ activeUsers: 42 });
+
+  // STRICT SECURITY CHECK LAYER
+  useEffect(() => {
+    const verifyAdminSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.email === 'hasnainarain193@gmail.com') {
+        setIsAdmin(true);
+        fetchAllSystemData();
+      } else {
+        alert("Unauthorized Access. Admin security routing blocked this channel.");
+        window.location.href = '/';
+      }
+      setCheckingAuth(false);
+    };
+    verifyAdminSession();
+  }, []);
 
   // Async Multi-Table Sourcing Data Flow Pipeline
   const fetchAllSystemData = async () => {
@@ -63,10 +86,6 @@ export default function AdminDashboardStation() {
     }
   };
 
-  useEffect(() => {
-    fetchAllSystemData();
-  }, []);
-
   // Real-time Storage Images Upload Streams Handler
   const handleFileUploadStream = async (e, targetBucket) => {
     const file = e.target.files?.[0];
@@ -78,21 +97,18 @@ export default function AdminDashboardStation() {
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from(targetBucket)
+        .from('zonix-media')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from(targetBucket)
+        .from('zonix-media')
         .getPublicUrl(filePath);
 
-      // if (targetBucket === 'product') setFormData({ ...formData, image: publicUrl });
-      // if (targetBucket === 'category') setNewCategoryImage(publicUrl);
-      // if (targetBucket === 'banner') setNewBannerImage(publicUrl);
-          if (targetBucket === 'product') setFormData({ ...formData, image: publicUrl });
-    if (targetBucket === 'category') setNewCategoryPage || setNewCategoryImage(publicUrl);
-    if (targetBucket === 'banner' || targetBucket === 'zonix-media') setNewBannerImage(publicUrl);
+      if (targetBucket === 'product') setFormData(prev => ({ ...prev, image: publicUrl }));
+      if (targetBucket === 'category') setNewCategoryImage(publicUrl);
+      if (targetBucket === 'banner') setNewBannerImage(publicUrl);
 
       alert("Image asset uploaded and cloud url synced successfully!");
     } catch (err) {
@@ -158,7 +174,6 @@ export default function AdminDashboardStation() {
     document.getElementById('product-creation-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Master Global Delete Entry Node Triggers
   const handleDelete = async (id, targetTable) => {
     if (!confirm(`Are you absolutely sure you want to wipe reference index #${id} from ${targetTable}?`)) return;
     try {
@@ -170,7 +185,6 @@ export default function AdminDashboardStation() {
     }
   };
 
-  // Batch Bulk Selection Actions Mechanics
   const toggleSelectItem = (id) => {
     setSelectedItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
@@ -187,7 +201,6 @@ export default function AdminDashboardStation() {
     }
   };
 
-  // Auxiliary Inserts for Secondary Layout Modules
   const handleCreateCategory = async (e) => {
     e.preventDefault();
     if (!newCategoryName) return;
@@ -197,6 +210,7 @@ export default function AdminDashboardStation() {
       setNewCategoryName('');
       setNewCategoryImage('');
       fetchAllSystemData();
+      alert("New category channel injected successfully.");
     } catch (err) { alert(err.message); }
   };
 
@@ -209,6 +223,7 @@ export default function AdminDashboardStation() {
       setNewBannerTitle('');
       setNewBannerImage('');
       fetchAllSystemData();
+      alert("New poster banner deployed successfully.");
     } catch (err) { alert(err.message); }
   };
 
@@ -222,25 +237,29 @@ export default function AdminDashboardStation() {
 
   const outOfStockCount = products.filter(p => (parseInt(p.inventory) || 0) === 0).length;
 
+  if (checkingAuth) {
+    return <div className="text-center p-12 text-xs font-bold uppercase tracking-wider text-slate-400">Verifying Administrative Route Firewall...</div>;
+  }
+
+  if (!isAdmin) return null;
+
   return (
-    <div className="bg-[#0b0f19] text-[#f1f5f9] min-h-screen flex flex-col md:flex-row font-sans antialiased selection:bg-[#ff4d00] selection:text-white">
+    <div className="bg-[#f8fafc] text-[#0f172a] min-h-screen flex flex-col md:flex-row font-sans antialiased selection:bg-[#ff4d00] selection:text-white">
       
       {/* Side Control Command Navigation Hub */}
-      <aside className="w-full md:w-64 bg-[#111827] border-b md:border-r border-[#1e293b]/40 p-6 flex flex-col justify-between shadow-xl relative z-10">
+      <aside className="w-full md:w-64 bg-white border-b md:border-r border-slate-200 p-6 flex flex-col justify-between shadow-sm relative z-10">
         <div>
-          <div className="flex items-center gap-3 mb-8 px-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#ff4d00] to-[#ffaa00] flex items-center justify-center shadow-lg shadow-[#ff4d00]/20">
-              <Globe className="w-6 h-6 text-white animate-pulse" />
+          <div className="flex items-center gap-3 mb-8 px-2 select-none cursor-pointer" onClick={() => window.location.href = '/'}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#ff4d00] to-[#ffaa00] flex items-center justify-center shadow-md">
+              <Globe className="w-5 h-5 text-white animate-pulse" />
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-tight text-white">Zonix Mart</h1>
-              <p className="text-xs text-[#64748b] font-medium">Control Station Live</p>
             </div>
           </div>
 
-          <div className="mb-4 px-2 text-[10px] font-bold text-[#64748b] uppercase tracking-wider">Main Management Panel</div>
+          <div className="mb-4 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Main Management Panel</div>
 
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {[
               { id: 'products', label: 'Products Master', icon: Package },
               { id: 'categories', label: 'Categories Matrix', icon: Layers },
@@ -253,45 +272,45 @@ export default function AdminDashboardStation() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group ${
                     activeTab === tab.id
-                      ? 'bg-gradient-to-r from-[#ff4d00]/15 to-transparent border-l-4 border-[#ff4d00] text-[#ff4d00]'
-                      : 'text-[#94a3b8] hover:bg-[#1e293b]/50 hover:text-white'
+                      ? 'bg-[#ff4d00]/10 border-l-4 border-[#ff4d00] text-[#ff4d00]'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <IconComponent className={`w-5 h-5 ${activeTab === tab.id ? 'text-[#ff4d00]' : 'text-slate-600'}`} />
-                    <span>{tab.label}</span>
+                    <IconComponent className={`w-4 h-4 ${activeTab === tab.id ? 'text-[#ff4d00]' : 'text-slate-400'}`} />
+                    <span className="uppercase tracking-wider">{tab.label}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all text-[#64748b]" />
+                  <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all text-slate-400" />
                 </button>
               );
             })}
           </nav>
         </div>
 
-        <div className="mt-8 pt-4 border-t border-[#1e293b]/60 px-2">
-          <div className="flex items-center gap-3 bg-[#1e293b]/30 p-3 rounded-xl border border-[#1e293b]/40">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
-            <div>
-              <p className="text-xs text-[#94a3b8] font-medium">Logged in Admin</p>
-              <p className="text-[11px] text-[#64748b] truncate font-mono">hasnainarain193@gmail.com</p>
+        <div className="mt-8 pt-4 border-t border-slate-100 px-2">
+          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"></div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] text-slate-400 font-bold uppercase">Logged in Admin</p>
+              <p className="text-[11px] text-slate-700 truncate font-mono font-bold">hasnainarain193@gmail.com</p>
             </div>
           </div>
         </div>
       </aside>
 
       {/* Main Screen Content Stream Node */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto w-full">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
         
         {/* Dynamic Header Controls Grid */}
-        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 pb-6 border-b border-[#1e293b]/40">
+        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#ff4d00] tracking-wider uppercase mb-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-black text-[#ff4d00] tracking-widest uppercase mb-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#ff4d00]"></span>
               Zonix Advanced Engine Node Active
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight uppercase">
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight uppercase">
               {activeTab === 'products' && "Product Ecosystem Grid"}
               {activeTab === 'categories' && "Database Categories Architecture"}
               {activeTab === 'orders' && "Live Orders Control Folder"}
@@ -299,126 +318,115 @@ export default function AdminDashboardStation() {
             </h2>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <button onClick={fetchAllSystemData} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#111827] border border-[#1e293b]/80 rounded-xl text-xs font-semibold text-[#94a3b8] hover:text-white transition-all"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#ff4d00]' : ''}`} /> Sync Grid Arrays</button>
-            <button onClick={triggerDatabaseBackup} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs font-semibold transition-all"><Download className="w-4 h-4" /> Export System JSON</button>
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <button onClick={fetchAllSystemData} className="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition-all shadow-xs"><RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#ff4d00]' : ''}`} /> Sync Grid Arrays</button>
+            <button onClick={triggerDatabaseBackup} className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold transition-all shadow-md uppercase tracking-wider text-[10px]"><Download className="w-3.5 h-3.5" /> Export System JSON</button>
           </div>
         </header>
 
         {/* Live System Scoreboards Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          <div className="bg-[#111827] border border-[#1e293b]/40 p-5 rounded-2xl relative overflow-hidden shadow-lg">
-            <div className="text-xs font-bold text-[#64748b] tracking-wider uppercase mb-2">Live Nodes Tracking</div>
-            <div className="text-3xl font-black text-white tracking-tight flex items-baseline gap-2">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[9px] font-black text-slate-400 tracking-widest uppercase mb-1">Live Nodes Tracking</div>
+            <div className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-baseline gap-1.5">
               <span>{liveStats.activeUsers}</span>
-              <span className="text-xs text-emerald-400 font-bold flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" /> Online</span>
+              <span className="text-[9px] text-emerald-600 font-black uppercase flex items-center gap-0.5"><ArrowUpRight className="w-2.5 h-2.5" /> Online</span>
             </div>
           </div>
 
-          <div className="bg-[#111827] border border-[#1e293b]/40 p-5 rounded-2xl relative overflow-hidden shadow-lg">
-            <div className="text-xs font-bold text-[#64748b] tracking-wider uppercase mb-2">Total Catalog Items</div>
-            <div className="text-3xl font-black text-white tracking-tight"><span>{products.length}</span><span className="text-xs text-[#94a3b8] font-medium ml-1">Items</span></div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[9px] font-black text-slate-400 tracking-widest uppercase mb-1">Total Catalog Items</div>
+            <div className="text-xl md:text-2xl font-black text-slate-900 tracking-tight"><span>{products.length}</span><span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Items</span></div>
           </div>
 
-          <div className="bg-[#111827] border border-[#1e293b]/40 p-5 rounded-2xl relative overflow-hidden shadow-lg">
-            <div className="text-xs font-bold text-[#64748b] tracking-wider uppercase mb-2">Live Pending Orders</div>
-            <div className="text-3xl font-black text-amber-400 tracking-tight"><span>{orders.length}</span><span className="text-xs text-[#64748b] font-medium ml-1">Orders</span></div>
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[9px] font-black text-slate-400 tracking-widest uppercase mb-1">Live Pending Orders</div>
+            <div className="text-xl md:text-2xl font-black text-amber-500 tracking-tight"><span>{orders.length}</span><span className="text-[10px] text-slate-400 font-bold ml-1 uppercase">Orders</span></div>
           </div>
 
-          <div className="bg-[#111827] border border-[#1e293b]/40 p-5 rounded-2xl relative overflow-hidden shadow-lg">
-            <div className="text-xs font-bold text-[#64748b] tracking-wider uppercase mb-2">Stock Warnings</div>
-            <div className="text-3xl font-black text-rose-400 tracking-tight flex items-baseline gap-2">
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+            <div className="text-[9px] font-black text-slate-400 tracking-widest uppercase mb-1">Stock Warnings</div>
+            <div className="text-xl md:text-2xl font-black text-rose-500 tracking-tight flex items-baseline gap-1.5">
               <span>{outOfStockCount}</span>
-              {outOfStockCount > 0 && <span className="text-xs text-rose-400 font-bold px-1.5 py-0.5 bg-rose-500/10 rounded-md">Action Required</span>}
+              {outOfStockCount > 0 && <span className="text-[8px] text-rose-600 font-black px-1.5 py-0.5 bg-rose-50 rounded uppercase">Alert</span>}
             </div>
           </div>
         </section>
 
-        {/* Dynamic Route Switching View Terminal Panels */}
-        <div className="space-y-10">
+        {/* Dynamic View Panels Layer */}
+        <div className="space-y-6">
 
-          {/* TAB 1: Advanced Products Publisher Management Terminal */}
+          {/* TAB 1: Advanced Products Publisher */}
           {activeTab === 'products' && (
-            <div className="space-y-8">
-              <div id="product-creation-form" className="bg-[#111827] border border-[#1e293b]/40 rounded-2xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><PlusCircle className="w-5 h-5 text-[#ff4d00]" /> {editMode ? "Modify Selected Active Product" : "Add Product to Live Grid"}</h3>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Product Name *</label>
-                    <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Luxury Arabic Perfume" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-[#ff4d00] transition-all" />
+            <div className="space-y-6">
+              <div id="product-creation-form" className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-1.5"><PlusCircle className="w-4 h-4 text-[#ff4d00]" /> {editMode ? "Modify Selected Active Product" : "Add Product to Live Grid"}</h3>
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Name *</label>
+                    <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Luxury Arabic Perfume" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Price (OMR) *</label>
-                    <input type="number" step="0.001" required value={formData.price_omr} onChange={e => setFormData({...formData, price_omr: e.target.value})} placeholder="e.g. 24.500" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm font-mono focus:outline-none focus:border-[#ff4d00] transition-all" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Price (OMR) *</label>
+                    <input type="number" step="0.001" required value={formData.price_omr} onChange={e => setFormData({...formData, price_omr: e.target.value})} placeholder="e.g. 24.500" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Warehouse Stock</label>
-                    <input type="number" value={formData.inventory} onChange={e => setFormData({...formData, inventory: e.target.value})} placeholder="e.g. 50" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm font-mono focus:outline-none focus:border-[#ff4d00] transition-all" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Warehouse Stock</label>
+                    <input type="number" value={formData.inventory} onChange={e => setFormData({...formData, inventory: e.target.value})} placeholder="e.g. 50" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Target Sync Category Block *</label>
-                    <select value={formData.category} required onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-[#ff4d00] transition-all cursor-pointer">
-                      <option value="" disabled className="bg-[#111827]">Select Category Placement</option>
-                      {categories.map((cat, idx) => (<option key={idx} value={cat.name} className="bg-[#111827]">{cat.name}</option>))}
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Sync Category Block *</label>
+                    <select value={formData.category} required onChange={e => setFormData({...formData, category: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all cursor-pointer">
+                      <option value="" disabled>Select Category Placement</option>
+                      {categories.map((cat, idx) => (<option key={idx} value={cat.name}>{cat.name}</option>))}
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Article No / SKU Reference *</label>
-                    <input type="text" required value={formData.article_no} onChange={e => setFormData({...formData, article_no: e.target.value})} placeholder="e.g. AR-PERF-092" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm font-mono focus:outline-none focus:border-[#ff4d00] transition-all" />
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Article No / SKU Reference *</label>
+                    <input type="text" required value={formData.article_no} onChange={e => setFormData({...formData, article_no: e.target.value})} placeholder="e.g. AR-PERF-092" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Image URL / Upload</label>
-                    <div className="flex gap-2">
-                      <input type="text" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://image-link.com" className="flex-1 px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-xs truncate focus:outline-none focus:border-[#ff4d00] transition-all" />
-                      <label className="px-3 py-3 bg-[#1e293b] border border-[#334155]/60 hover:bg-[#334155] rounded-xl text-xs font-bold text-[#94a3b8] hover:text-white cursor-pointer transition-all flex items-center justify-center">{uploading ? '...' : 'Upload'}<input type="file" accept="image/*" onChange={(e) => handleFileUploadStream(e, 'product')} className="hidden" /></label>
-                    </div>
+                  <div className="space-y-1">
+                    <input type="text" value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} placeholder="e.g. Best Seller, New" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Product Description Log</label>
-                    <textarea rows="2" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Enter specifications..." className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm resize-none focus:outline-none focus:border-[#ff4d00] transition-all"></textarea>
+                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl select-none sm:mt-5 cursor-pointer" onClick={() => setFormData({...formData, is_featured: !formData.is_featured})}>
+                    <button type="button" className={`p-1 rounded transition-all ${formData.is_featured ? 'text-[#ffaa00]' : 'text-slate-400'}`}><Star className="w-4 h-4 fill-current" /></button>
+                    <div><p className="text-xs font-bold text-slate-800">Prioritize Top Placement</p><p className="text-[9px] text-slate-400">Force to topmost row row grid view</p></div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider">Product Tags</label>
-                    <input type="text" value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} placeholder="e.g. Best Seller, New" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-[#ff4d00] transition-all" />
-                  </div>
-                  <div className="flex items-center gap-3 bg-[#0b0f19] border border-[#1e293b] px-4 py-3 rounded-xl select-none lg:mt-7 cursor-pointer" onClick={() => setFormData({...formData, is_featured: !formData.is_featured})}>
-                    <button type="button" className={`p-1 rounded transition-all ${formData.is_featured ? 'text-[#ffaa00]' : 'text-slate-600'}`}><Star className="w-5 h-5 fill-current" /></button>
-                    <div><p className="text-xs font-bold text-white">Prioritize Top Placement</p><p className="text-[10px] text-[#64748b]">Force to topmost row layout instantly</p></div>
-                  </div>
-                  <div className="lg:col-span-3 flex justify-end gap-3 border-t border-[#1e293b]/40 pt-4 mt-4">
-                    {editMode && (<button type="button" onClick={() => { setEditMode(false); setTargetId(null); setFormData({ name: '', price_omr: '', inventory: '', category: '', tags: '', image: '', description: '', article_no: '', is_featured: false }); }} className="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all">Cancel Editing</button>)}
-                    <button type="submit" className="px-5 py-2.5 bg-gradient-to-r from-[#ff4d00] to-[#ffaa00] hover:opacity-90 text-white font-bold text-xs rounded-xl uppercase tracking-wider shadow-lg transition-all">Save Product Record</button>
+                  <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-2 border-t pt-3 mt-2">
+                    {editMode && (<button type="button" onClick={() => { setEditMode(false); setTargetId(null); setFormData({ name: '', price_omr: '', inventory: '', category: '', tags: '', image: '', description: '', article_no: '', is_featured: false }); }} className="px-3 py-2 bg-slate-100 text-slate-500 hover:text-slate-800 rounded-xl text-xs font-bold transition-all">Cancel</button>)}
+                    <button type="submit" className="px-4 py-2 bg-slate-900 hover:bg-[#ff4d00] text-white font-bold text-xs rounded-xl uppercase tracking-wider shadow-sm transition-all">Save Product Record</button>
                   </div>
                 </form>
               </div>
 
-              <div className="bg-[#111827] border border-[#1e293b]/40 rounded-2xl shadow-xl overflow-hidden">
-                <div className="p-6 border-b border-[#1e293b]/40 flex justify-between items-center bg-[#111827]">
-                  <div><h3 className="font-bold text-lg text-white">Active Catalog Ledger</h3><p className="text-xs text-[#64748b]">Select items to perform automated batch bulk actions</p></div>
-                  {selectedItems.length > 0 && (<button type="button" onClick={handleBulkDelete} className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white rounded-xl text-xs font-bold transition-all">Bulk Wipe ({selectedItems.length})</button>)}
+              {/* Responsive Table Node Container */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                <div className="p-4 border-b flex justify-between items-center bg-white">
+                  <div><h3 className="font-black text-xs text-slate-800 uppercase tracking-widest">Active Catalog Ledger</h3></div>
+                  {selectedItems.length > 0 && (<button type="button" onClick={handleBulkDelete} className="px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl text-xs font-bold transition-all">Bulk Wipe ({selectedItems.length})</button>)}
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="bg-[#0b0f19] text-[#64748b] text-[11px] font-bold uppercase tracking-wider border-b border-[#1e293b]/60">
-                        <th className="p-4 w-12 text-center">Select</th>
-                        <th className="p-4">Item Details & Article SKU</th>
-                        <th className="p-4">Category Cluster</th>
-                        <th className="p-4">Financial Matrix</th>
-                        <th className="p-4">Warehouse Status</th>
-                        <th className="p-4 text-right">Actions</th>
+                      <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-200">
+                        <th className="p-3 w-12 text-center">Select</th>
+                        <th className="p-3">Item Details & SKU</th>
+                        <th className="p-3">Category Cluster</th>
+                        <th className="p-3">Financial Matrix</th>
+                        <th className="p-3">Warehouse Status</th>
+                        <th className="p-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1e293b]/40 text-sm text-[#94a3b8]">
-                      {products.length === 0 ? (<tr><td colSpan="6" className="p-8 text-center text-xs font-semibold text-[#475569]">No products configured inside database grid.</td></tr>) : (
+                    <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
+                      {products.length === 0 ? (<tr><td colSpan="6" className="p-6 text-center text-xs font-bold text-slate-400 uppercase">No products configured inside database grid.</td></tr>) : (
                         products.map((prod) => (
-                          <tr key={prod.id} className={`hover:bg-[#1e293b]/30 ${prod.is_featured ? 'bg-[#ffaa00]/5 border-l-4 border-l-[#ffaa00]' : ''}`}>
-                            <td className="p-4 text-center"><button type="button" onClick={() => toggleSelectItem(prod.id)} className="text-[#ff4d00]">{selectedItems.includes(prod.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-600" />}</button></td>
-                            <td className="p-4"><div className="flex items-center gap-4"><img src={prod.image} alt={prod.name} className="w-11 h-11 object-cover rounded-xl border border-[#1e293b]" onError={(e) => { e.target.src = 'https://unsplash.com'; }} /><div><div className="font-bold text-white flex items-center gap-2">{prod.name} {prod.is_featured && <span className="text-[10px] text-[#ffaa00] bg-[#ffaa00]/10 px-1.5 py-0.5 rounded-md font-bold">TOP</span>}</div><div className="text-[11px] font-mono text-[#ffaa00] mt-0.5">Art No: {prod.article_no || 'N/A'}</div></div></div></td>
-                            <td className="p-4"><span className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded text-xs font-bold uppercase tracking-wider">{prod.category}</span></td>
-                            <td className="p-4 font-mono font-bold text-white">{parseFloat(prod.price_omr || 0).toFixed(3)} <span className="text-[10px] text-[#64748b]">OMR</span></td>
-                            <td className="p-4 font-mono text-xs"><div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${(parseInt(prod.inventory) || 0) === 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}></span><span>{prod.inventory} Units</span></div></td>
-                            <td className="p-4 text-right"><div className="flex justify-end gap-2"><button type="button" onClick={() => handleEditTrigger(prod)} className="p-2 bg-slate-800 hover:bg-[#ff4d00]/10 text-slate-400 hover:text-[#ff4d00] rounded-xl transition-all"><Edit3 className="w-4 h-4" /></button><button type="button" onClick={() => handleDelete(prod.id, 'products')} className="p-2 bg-slate-800 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td>
+                          <tr key={prod.id} className={`hover:bg-slate-50/50 ${prod.is_featured ? 'bg-amber-50/30' : ''}`}>
+                            <td className="p-3 text-center"><button type="button" onClick={() => toggleSelectItem(prod.id)} className="text-[#ff4d00]">{selectedItems.includes(prod.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-300" />}</button></td>
+                            <td className="p-3"><div className="flex items-center gap-3"><img src={prod.image} alt={prod.name} className="w-9 h-9 object-cover rounded-lg border border-slate-200" onError={(e) => { e.target.src = 'https://unsplash.com'; }} /><div className="min-w-0"><div className="font-bold text-slate-900 truncate max-w-[180px] flex items-center gap-1">{prod.name} {prod.is_featured && <span className="text-[8px] text-amber-700 bg-amber-100 px-1 rounded font-black">TOP</span>}</div><div className="text-[10px] font-mono text-slate-400 mt-0.5">SKU: {prod.article_no || 'N/A'}</div></div></div></td>
+                            <td className="p-3"><span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">{prod.category}</span></td>
+                            <td className="p-3 font-mono font-bold text-slate-900">{parseFloat(prod.price_omr || 0).toFixed(3)} OMR</td>
+                            <td className="p-3 font-mono"><div className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${(parseInt(prod.inventory) || 0) === 0 ? 'bg-rose-500' : 'bg-emerald-500'}`}></span><span>{prod.inventory} Units</span></div></td>
+                            <td className="p-3 text-right"><div className="flex justify-end gap-1.5"><button type="button" onClick={() => handleEditTrigger(prod)} className="p-1.5 bg-slate-50 hover:bg-[#ff4d00]/10 text-slate-400 hover:text-[#ff4d00] rounded-lg transition-all"><Edit3 className="w-3.5 h-3.5" /></button><button type="button" onClick={() => handleDelete(prod.id, 'products')} className="p-1.5 bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button></div></td>
                           </tr>
                         ))
                       )}
@@ -429,124 +437,137 @@ export default function AdminDashboardStation() {
             </div>
           )}
 
-          {/* TAB 2: Advanced Live Orders Control Folder with Search Matrix, Status Filters & Return Management */}
-          {activeTab === 'orders' && (
-            <div className="space-y-8 animate-fade-in">
-              <div className="bg-[#111827] border border-[#1e293b]/40 rounded-2xl p-6 shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div>
-                  <h3 className="font-bold text-base text-white flex items-center gap-2"><ClipboardList className="w-5 h-5 text-[#ff4d00]" /> Live Customer Orders ERP Command Station</h3>
-                  <p className="text-xs text-[#64748b] mt-0.5">Filter by date, search via Token ID or Name, manipulate delivery statuses, and manage items cancellation logs.</p>
+                {/* TAB 2: Live Orders Tracker */}
+        {activeTab === 'orders' && (
+          <div className="space-y-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest flex items-center gap-1">
+                  <ClipboardList className="w-4 h-4 text-[#ff4d00]" /> Orders ERP Command Station
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-xl text-xs w-full sm:w-auto">
+                  <Calendar className="w-3.5 h-3.5 text-[#ff4d00]" />
+                  <input type="date" value={orderDateFilter} onChange={e => setOrderDateFilter(e.target.value)} className="bg-transparent text-slate-700 outline-none text-xs cursor-pointer" />
                 </div>
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                  <div className="flex items-center gap-2 bg-[#0b0f19] border border-[#1e293b] px-3 py-2.5 rounded-xl w-full sm:w-auto shadow-inner">
-                    <Calendar className="w-4 h-4 text-[#ff4d00]" />
-                    <input type="date" value={orderDateFilter} onChange={e => setOrderDateFilter(e.target.value)} className="bg-transparent text-xs text-white focus:outline-none cursor-pointer scheme-dark" />
-                    {orderDateFilter && (<button type="button" onClick={() => setOrderDateFilter('')} className="text-[10px] text-rose-400 font-bold ml-1 hover:underline">Clear</button>)}
-                  </div>
-                  <div className="relative w-full sm:w-64">
-                    <input type="text" value={window.orderSearchQueryVar || ''} onChange={e => { window.orderSearchQueryVar = e.target.value; setLiveStats(prev => ({ ...prev, activeUsers: prev.activeUsers })); }} placeholder="Search Order ID or Name..." className="w-full px-4 py-2.5 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#ff4d00] transition-all font-sans pl-9 shadow-inner" />
-                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-                    {window.orderSearchQueryVar && (<button type="button" onClick={() => { window.orderSearchQueryVar = ''; setLiveStats(prev => ({ ...prev, activeUsers: prev.activeUsers })); }} className="text-[10px] text-rose-400 absolute right-3 top-3 font-bold hover:underline">Clear</button>)}
-                  </div>
+                {/* SEARCH BAR FIXED: Correctly tracking state for real-time filtering */}
+                <div className="relative w-full sm:w-64">
+                  <input 
+                    type="text" 
+                    value={orderSearchQuery} 
+                    onChange={e => setOrderSearchQuery(e.target.value)} 
+                    placeholder="Search Token ID or Name..." 
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#ff4d00] focus:bg-white pl-8 text-slate-800" 
+                  />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  {orderSearchQuery && (
+                    <button type="button" onClick={() => setOrderSearchQuery('')} className="absolute right-2.5 top-2 text-[10px] text-rose-500 font-bold hover:underline">Clear</button>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-wrap items-center gap-2 bg-[#111827] border border-[#1e293b]/30 p-2 rounded-xl shadow-lg">
-                {[
-                  { id: 'all', label: 'All Orders Cluster' },
-                  { id: 'pending', label: 'Pending COD' },
-                  { id: 'live', label: 'Live Processing' },
-                  { id: 'complete', label: 'Completed Deliveries' },
-                  { id: 'cancel', label: 'Cancelled Archive' }
-                ].map((btn) => {
-                  const isBtnActive = (window.activeOrderStatusFilterToken || 'all') === btn.id;
-                  return (
-                    <button
-                      key={btn.id}
-                      type="button"
-                      onClick={() => {
-                        window.activeOrderStatusFilterToken = btn.id;
-                        setLiveStats(prev => ({ ...prev, activeUsers: prev.activeUsers }));
-                      }}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
-                        isBtnActive 
-                          ? 'bg-[#ff4d00] text-white shadow-md shadow-[#ff4d00]/10 scale-102 font-black' 
-                          : 'bg-[#0b0f19] text-[#94a3b8] hover:text-white border border-[#1e293b]/60'
-                      }`}
-                    >
-                      {btn.label}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* TAB BUTTONS FIXED: Active tracking state with responsive conditions */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+              {[
+                { id: 'all', label: 'All Cluster' },
+                { id: 'pending', label: 'Pending COD' },
+                { id: 'live', label: 'Live' },
+                { id: 'complete', label: 'Completed' },
+                { id: 'cancel', label: 'Cancelled' }
+              ].map((btn) => (
+                <button
+                  key={btn.id}
+                  type="button"
+                  onClick={() => setStatusFilter(btn.id)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${
+                    statusFilter === btn.id ? 'bg-slate-900 text-white shadow-sm scale-102' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
 
-              {/* Dynamic Automated Orders Database Ledger Table Container */}
-              <div className="bg-[#111827] border border-[#1e293b]/40 rounded-2xl shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-sm text-[#94a3b8]">
-                    <thead>
-                      <tr className="bg-[#0b0f19] text-[#64748b] text-[11px] font-bold uppercase tracking-wider border-b border-[#1e293b]/60">
-                        <th className="p-4 w-16">Token ID</th>
-                        <th className="p-4">Customer Credentials & Date History</th>
-                        <th className="p-4">Delivery Route Address</th>
-                        <th className="p-4">Current Flow Status</th>
-                        <th className="p-4">Invoice Net Volume</th>
-                        <th className="p-4 w-52">Return / Refund / Cancellation Logs</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#1e293b]/40 text-xs">
-                      {(() => {
-                        const query = (window.orderSearchQueryVar || '').toLowerCase().trim();
-                        const filterToken = window.activeOrderStatusFilterToken || 'all';
-                        let processingArray = [...orders];
+            {/* Orders Data Table Node */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left border-collapse min-w-[850px]">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-200">
+                      <th className="p-3 w-16">Token ID</th>
+                      <th className="p-3">Customer Credentials</th>
+                      <th className="p-3">Route Address</th>
+                      <th className="p-3">Flow Status</th>
+                      <th className="p-3">Invoice Price</th>
+                      <th className="p-3 w-44">Logs & Claims</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
+                    {(() => {
+                      let filtered = [...orders];
+                      
+                      if (orderDateFilter) {
+                        filtered = filtered.filter(o => o.created_at?.startsWith(orderDateFilter));
+                      }
+                      
+                      if (orderSearchQuery.trim()) {
+                        const query = orderSearchQuery.toLowerCase().trim();
+                        filtered = filtered.filter(o => 
+                          o.id?.toString().includes(query) || 
+                          o.customer_name?.toLowerCase().includes(query)
+                        );
+                      }
+                      
+                      if (statusFilter !== 'all') {
+                        filtered = filtered.filter(o => {
+                          const nodeState = (o.status_node || 'pending').toLowerCase().trim();
+                          return nodeState === statusFilter;
+                        });
+                      }
 
-                        if (orderDateFilter) processingArray = processingArray.filter(ord => ord.created_at?.startsWith(orderDateFilter));
-                        if (query) processingArray = processingArray.filter(o => o.id?.toString().includes(query) || o.customer_name?.toLowerCase().includes(query));
-                        if (filterToken !== 'all') processingArray = processingArray.filter(o => (o.status_node || 'pending').toLowerCase() === filterToken);
+                      if (filtered.length === 0) {
+                        return (<tr><td colSpan="7" className="p-6 text-center text-xs font-bold text-slate-400 uppercase">No customer checkout registries match.</td></tr>);
+                      }
 
-                        if (processingArray.length === 0) {
-                          return (<tr><td colSpan="7" className="p-16 text-center text-slate-500 font-bold uppercase tracking-wide">No active customer checkout registries match the specified filters.</td></tr>);
-                        }
-
-                        return processingArray.map((ord) => (
-                          <tr key={ord.id} className="hover:bg-[#1e293b]/30 transition-all">
-                            <td className="p-4 font-mono font-black text-[#ff4d00]">#{ord.id}</td>
-                            <td className="p-4">
-                              <button type="button" onClick={() => { window.currentSelectedOrderNode = ord; setLiveStats(prev => ({ ...prev, activeUsers: prev.activeUsers })); }} className="text-left focus:outline-none block hover:underline">
-                                <div className="font-extrabold text-white text-sm capitalize">{ord.customer_name}</div>
-                                <div className="text-[11px] text-[#64748b] mt-0.5 font-mono">{ord.customer_email || 'no-email@zonix.com'}</div>
-                                <div className="text-[11px] text-slate-400 mt-0.5 font-mono font-bold">Date: {new Date(ord.created_at || Date.now()).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      return filtered.map((ord) => (
+                          <tr key={ord.id} className="hover:bg-slate-50/50 transition-all">
+                            <td className="p-3 font-mono font-black text-[#ff4d00]">#{ord.id}</td>
+                            <td className="p-3">
+                              <button type="button" onClick={() => setSelectedOrderNode(ord)} className="text-left outline-none block hover:underline">
+                                <div className="font-bold text-slate-900 text-xs capitalize">{ord.customer_name}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{ord.customer_email || 'no-email@zonix.com'}</div>
                               </button>
                             </td>
-                            <td className="p-4"><div className="text-slate-300 max-w-[160px] line-clamp-2 leading-relaxed">{ord.customer_address}</div><div className="text-[11px] text-slate-500 font-bold mt-0.5">Ph: {ord.customer_phone}</div></td>
-                            <td className="p-4">
+                            <td className="p-3"><div className="text-slate-700 max-w-40 truncate">{ord.customer_address}</div><div className="text-[10px] text-slate-400 font-bold font-mono mt-0.5">Ph: {ord.customer_phone}</div></td>
+                            <td className="p-3">
                               <select value={ord.status_node || 'pending'} onChange={async (e) => {
-                                const updatedStatus = e.target.value;
-                                let cancelReasonText = ord.cancel_reason || '';
-                                if (updatedStatus === 'cancel') {
-                                  const userReasonInput = prompt("Please provide a reason for cancellation:", cancelReasonText);
-                                  if (userReasonInput === null) return;
-                                  cancelReasonText = userReasonInput.trim() || 'No context logged.';
+                                const state = e.target.value;
+                                let msg = ord.cancel_reason || '';
+                                if (state === 'cancel') {
+                                  const reason = prompt("Enter cancel context log:", msg);
+                                  if (reason === null) return;
+                                  msg = reason.trim() || 'Logged cancellation parameters.';
                                 }
-                                const { error } = await supabase.from('orders').update({ status_node: updatedStatus, cancel_reason: updatedStatus === 'cancel' ? cancelReasonText : null }).eq('id', ord.id);
-                                if (!error) { alert(`Status adjusted!`); fetchAllSystemData(); }
-                              }} className={`px-2 py-1.5 rounded bg-[#0b0f19] border font-bold uppercase text-[10px]`}>
+                                const { error } = await supabase.from('orders').update({ status_node: state, cancel_reason: state === 'cancel' ? msg : null }).eq('id', ord.id);
+                                if (!error) { alert("Status dynamic shift saved."); fetchAllSystemData(); }
+                              }} className="px-1.5 py-1 rounded bg-white border text-[10px] font-black uppercase text-slate-800 outline-none cursor-pointer focus:border-slate-400">
                                 <option value="pending">Pending COD</option>
                                 <option value="live">Live Processing</option>
                                 <option value="complete">Complete</option>
                                 <option value="cancel">Cancel</option>
                               </select>
                             </td>
-                            <td className="p-4 font-mono font-black text-white text-sm">{parseFloat(ord.total_price_omr || 0).toFixed(3)} <span className="text-[10px] text-[#64748b]">OMR</span></td>
-                            <td className="p-4 space-y-2">
-                              <div className="flex flex-col gap-1 max-w-[150px]">
-                                <input type="number" step="0.001" placeholder="Refund OMR..." defaultValue={ord.refund_value_omr || ''} onBlur={async (e) => { const val = parseFloat(e.target.value || 0); await supabase.from('orders').update({ refund_value_omr: val }).eq('id', ord.id); fetchAllSystemData(); }} className="px-2 py-1 bg-[#0b0f19] border rounded text-[11px] text-rose-400 font-mono" />
-                                <input type="text" placeholder="Item returns..." defaultValue={ord.return_comment_log || ''} onBlur={async (e) => { const msg = e.target.value.trim(); await supabase.from('orders').update({ return_comment_log: msg }).eq('id', ord.id); fetchAllSystemData(); }} className="px-2 py-1 bg-[#0b0f19] border rounded text-[10px] text-slate-300 truncate" />
+                            <td className="p-3 font-mono font-black text-slate-900">{parseFloat(ord.total_price_omr || 0).toFixed(3)} OMR</td>
+                            <td className="p-3 space-y-1">
+                              <div className="flex flex-col gap-1 max-w-32.5">
+                                <input type="number" step="0.001" placeholder="Refund OMR..." defaultValue={ord.refund_value_omr || ''} onBlur={async (e) => { const v = parseFloat(e.target.value || 0); await supabase.from('orders').update({ refund_value_omr: v }).eq('id', ord.id); fetchAllSystemData(); }} className="px-2 py-0.5 bg-slate-50 border rounded text-[10px] text-rose-600 font-mono outline-none focus:bg-white" />
+                                <input type="text" placeholder="Return notes..." defaultValue={ord.return_comment_log || ''} onBlur={async (e) => { const m = e.target.value.trim(); await supabase.from('orders').update({ return_comment_log: m }).eq('id', ord.id); fetchAllSystemData(); }} className="px-2 py-0.5 bg-slate-50 border rounded text-[10px] text-slate-700 truncate outline-none focus:bg-white" />
                               </div>
-                              {ord.status_node === 'cancel' && ord.cancel_reason && (<div className="text-[10px] font-medium text-rose-400 bg-rose-950/20 border border-rose-900/30 p-1.5 rounded max-w-[150px] line-clamp-2"><span className="font-bold uppercase text-[9px] block text-rose-500">Reason:</span> {ord.cancel_reason}</div>)}
                             </td>
-                            <td className="p-4 text-right"><button type="button" onClick={() => handleDelete(ord.id, 'orders')} className="p-2 bg-slate-800 text-slate-400 hover:text-rose-400 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button></td>
+                            <td className="p-3 text-right"><button type="button" onClick={() => handleDelete(ord.id, 'orders')} className="p-1.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button></td>
                           </tr>
                         ));
                       })()}
@@ -555,79 +576,37 @@ export default function AdminDashboardStation() {
                 </div>
               </div>
 
-              {/* Detail Sheet Overlay Drawer Popup */}
-              {window.currentSelectedOrderNode && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                  <div className="bg-[#111827] border border-[#1e293b] rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
-                    <div className="p-5 border-b border-[#1e293b] flex justify-between items-center">
-                      <div><h4 className="font-black text-sm text-white uppercase tracking-wider text-[#ff4d00]">Deep Invoice Specification Sheet</h4><p className="text-[10px] text-[#64748b] font-mono mt-0.5">Full Audit Path Index: #{window.currentSelectedOrderNode.id}</p></div>
-                      <button type="button" onClick={() => { window.currentSelectedOrderNode = null; setLiveStats(prev => ({ ...prev, activeUsers: prev.activeUsers })); }} className="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1.5 rounded-xl">Close Blueprint</button>
+              {/* Order Detail Modal popup */}
+              {selectedOrderNode && (
+                <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-white border rounded-xl w-full max-w-xl shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
+                    <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                      <div><h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-[#ff4d00]">Invoice Specification Sheet</h4></div>
+                      <button type="button" onClick={() => setSelectedOrderNode(null)} className="text-[10px] bg-slate-200 text-slate-700 font-black uppercase px-2.5 py-1 rounded-lg">Close</button>
                     </div>
-                    <div className="p-6 overflow-y-auto space-y-6 bg-[#0b0f19]/30 flex-1 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#111827] border p-4 rounded-xl">
-                        <div><div className="text-[#64748b] font-bold text-[9px]">Buyer Name</div><div className="text-white text-sm font-black capitalize">{window.currentSelectedOrderNode.customer_name}</div><div className="text-[#64748b] font-bold text-[9px] pt-2">Contact Telephone</div><div className="text-[#ff4d00] font-bold">{window.currentSelectedOrderNode.customer_phone}</div></div>
-                        <div className="space-y-1.5">
-                          <div className="text-[#64748b] font-bold uppercase text-[9px]">Session Email Account</div>
-                          <div className="text-slate-300 font-mono">{window.currentSelectedOrderNode.customer_email || 'N/A'}</div>
-                          
-                          <div className="text-[#64748b] font-bold uppercase text-[9px] pt-2">Pipeline Status</div>
-                          <div className="text-[#ff4d00] font-black uppercase text-[10px]">{window.currentSelectedOrderNode.status_node || 'PENDING'}</div>
-                        </div>
+                    <div className="p-5 overflow-y-auto space-y-4 text-xs bg-white">
+                      <div className="p-3 bg-slate-50 border rounded-xl space-y-1">
+                        <div><span className="text-[9px] font-black uppercase text-slate-400 block">Customer Name</span><p className="font-bold text-slate-900 capitalize text-sm">{selectedOrderNode.customer_name}</p></div>
+                        <div className="pt-2"><span className="text-[9px] font-black uppercase text-slate-400 block">Oman Mobile Vector</span><p className="font-mono text-slate-800 font-bold">{selectedOrderNode.customer_phone}</p></div>
+                        <div className="pt-2"><span className="text-[9px] font-black uppercase text-slate-400 block">Status Node</span><p className="font-black uppercase text-[#ff4d00] text-[10px]">{selectedOrderNode.status_node}</p></div>
                       </div>
-
-                      {/* Full Shipping Address Card */}
-                      <div className="bg-[#111827] border border-[#1e293b]/60 p-4 rounded-xl">
-                        <div className="text-[#64748b] font-bold uppercase text-[9px] mb-1.5">Delivery Destination Address Matrix</div>
-                        <div className="text-slate-200 font-medium bg-[#0b0f19]/30 p-2.5 rounded-lg border border-[#1e293b]/40">{window.currentSelectedOrderNode.customer_address}</div>
+                      <div className="p-3 bg-slate-50 border rounded-xl">
+                        <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Shipping Destination</span>
+                        <p className="text-slate-700 leading-relaxed bg-white border p-2 rounded-lg font-medium">{selectedOrderNode.customer_address}</p>
                       </div>
-
-                      {/* Item-by-Item Product Breakdown Grid */}
-                      <div className="space-y-3">
-                        <div className="text-[#64748b] font-bold uppercase text-[9px] pl-1">Purchased Items Breakdown Ledger</div>
-                        {(() => {
-                          const names = (window.currentSelectedOrderNode.product_name || '').split(',');
-                          const imgs = (window.currentSelectedOrderNode.product_image || '').split(',');
-                          return names.map((name, idx) => (
-                            <div key={idx} className="bg-[#111827] border border-[#1e293b]/40 p-3 rounded-xl flex items-center justify-between gap-4 shadow-sm">
-                              <div className="flex items-center gap-3">
-                                <img src={(imgs[idx] || '').trim()} className="w-10 h-10 object-cover rounded-lg border border-[#1e293b]" onError={(e)=>{e.target.src='https://unsplash.com';}} />
-                                <div>
-                                  <div className="font-bold text-white text-xs">{name.trim()}</div>
-                                  <div className="text-[10px] text-[#64748b] font-mono mt-0.5">Status: Verified Stock Allocated</div>
-                                </div>
-                              </div>
-                            </div>
-                          ));
-                        })()}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black uppercase text-slate-400 block pl-1">Products Pack Matrix</span>
+                        {((selectedOrderNode.product_name || '').split(',')).map((name, i) => (
+                          <div key={i} className="bg-slate-50 border p-2.5 rounded-xl flex items-center gap-3">
+                            <img src={((selectedOrderNode.product_image || '').split(','))[i]?.trim()} className="w-9 h-9 object-cover rounded-lg border bg-white" onError={(e)=>{e.target.src='https://unsplash.com';}} />
+                            <div className="min-w-0 flex-1"><div className="font-bold text-slate-900 text-xs truncate">{name.trim()}</div></div>
+                          </div>
+                        ))}
                       </div>
-
-                      {/* Cancellation Reason Specific Log Box (If Cancelled) */}
-                      {window.currentSelectedOrderNode.status_node === 'cancel' && window.currentSelectedOrderNode.cancel_reason && (
-                        <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-xl">
-                          <div className="text-rose-400 font-bold text-[9px] mb-1">Cancellation Log Reason</div>
-                          <div className="text-slate-300 italic bg-[#0b0f19]/40 p-2 rounded border border-rose-500/10">" {window.currentSelectedOrderNode.cancel_reason} "</div>
-                        </div>
-                      )}
-
-                      {/* Returns & Refund Specification Metadata Cards */}
-                      {(window.currentSelectedOrderNode.refund_value_omr > 0 || window.currentSelectedOrderNode.return_comment_log) && (
-                        <div className="bg-rose-500/5 border border-rose-500/20 p-4 rounded-xl space-y-2">
-                          <div className="text-rose-400 font-bold uppercase text-[9px] tracking-wider">Active Return / Refund Settlement Claims</div>
-                          {window.currentSelectedOrderNode.refund_value_omr > 0 && (
-                            <div className="text-white text-xs">Deducted Refund Debit: <span className="font-mono font-bold text-rose-400">-{parseFloat(window.currentSelectedOrderNode.refund_value_omr).toFixed(3)} OMR</span></div>
-                          )}
-                          {window.currentSelectedOrderNode.return_comment_log && (
-                            <div className="text-slate-400 text-xs italic bg-[#0b0f19]/40 p-2 rounded border border-rose-500/10">" {window.currentSelectedOrderNode.return_comment_log} "</div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Total Pricing Invoice Area */}
-                      <div className="flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                        <div className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">Gross Payable Accounting Invoice</div>
-                        <div className="font-mono font-black text-base text-emerald-400">{parseFloat(window.currentSelectedOrderNode.total_price_omr || 0).toFixed(3)} OMR</div>
+                      <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-slate-800">
+                        <span className="text-[9px] uppercase tracking-wider text-slate-500">Gross Payable Amount</span>
+                        <span className="font-mono text-sm text-emerald-600">{parseFloat(selectedOrderNode.total_price_omr || 0).toFixed(3)} OMR</span>
                       </div>
-
                     </div>
                   </div>
                 </div>
@@ -635,37 +614,36 @@ export default function AdminDashboardStation() {
             </div>
           )}
 
-          {/* TAB 3: Database Categories Architecture Node Manager Grid */}
+          {/* TAB 3: Database Categories */}
           {activeTab === 'categories' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="bg-[#111827] border border-[#1e293b]/40 rounded-2xl p-6 shadow-xl h-fit">
-                <h3 className="text-base font-bold text-white mb-4">Generate Category Module</h3>
-                <form onSubmit={handleCreateCategory} className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#64748b] font-bold uppercase tracking-wider">Category Name Cluster</label>
-                    <input type="text" required value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="e.g. Smart Watches" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-[#ff4d00] transition-all" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs h-fit">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Generate Category Module</h3>
+                <form onSubmit={handleCreateCategory} className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Category Name Cluster</label>
+                    <input type="text" required value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="e.g. Smart Watches" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#64748b] font-bold uppercase tracking-wider">Category Representative Image</label>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Category Image Asset</label>
                     <div className="flex gap-2">
-                      <input type="text" value={newCategoryImage} onChange={e => setNewCategoryImage(e.target.value)} placeholder="https://image-url.com" className="flex-1 px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-xs truncate focus:outline-none focus:border-[#ff4d00] transition-all" />
-                      <label className="px-3 py-3 bg-[#1e293b] hover:bg-[#334155] text-xs font-bold text-[#94a3b8] hover:text-white rounded-xl cursor-pointer transition-all flex items-center justify-center">Upload<input type="file" accept="image/*" onChange={(e) => handleFileUploadStream(e, 'category')} className="hidden" /></label>
+                      <input type="text" value={newCategoryImage} onChange={e => setNewCategoryImage(e.target.value)} placeholder="https://image-url.com" className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs truncate outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
+                      <label className="px-3 bg-slate-200 border hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-all flex items-center justify-center">Upload<input type="file" accept="image/*" onChange={(e) => handleFileUploadStream(e, 'category')} className="hidden" /></label>
                     </div>
                   </div>
-                  <button type="submit" className="w-full py-3 bg-[#ff4d00] hover:bg-[#ff4d00]/90 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md">Inject Category Block</button>
+                  <button type="submit" className="w-full py-2.5 bg-[#ff4d00] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm mt-2">Inject Category Block</button>
                 </form>
               </div>
 
-              <div className="lg:col-span-2 bg-[#111827] border border-[#1e293b]/40 rounded-2xl p-6 shadow-xl">
-                <h3 className="text-base font-bold text-white mb-2">Live Category Terminal Channels</h3>
-                <p className="text-xs text-[#64748b] mb-6">These blocks sync directly to the user storefront grid layouts from permanent cloud tables.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3">Live Category Channels</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {categories.map((cat, idx) => (
-                    <div key={idx} className="bg-[#0b0f19] border border-[#1e293b]/60 rounded-xl overflow-hidden group shadow-md relative">
-                      <div className="h-28 w-full overflow-hidden relative"><img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300" onError={(e) => { e.target.src = 'https://unsplash.com'; }} /></div>
-                      <div className="p-4 bg-[#0b0f19] flex justify-between items-center">
-                        <div><h4 className="font-bold text-sm text-white group-hover:text-[#ff4d00] transition-all">{cat.name}</h4><p className="text-[10px] text-[#475569] font-mono mt-1">Linked Items: {products.filter(p => p.category === cat.name).length}</p></div>
-                        <button type="button" onClick={() => handleDelete(cat.id, 'categories')} className="p-1.5 bg-slate-900 hover:text-rose-400 rounded-md transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-xs relative">
+                      <div className="h-24 w-full bg-slate-200"><img src={cat.image} alt={cat.name} className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://unsplash.com'; }} /></div>
+                      <div className="p-3 flex justify-between items-center bg-white border-t">
+                        <div className="min-w-0"><h4 className="font-bold text-xs text-slate-900 truncate">{cat.name}</h4><p className="text-[10px] text-slate-400 font-mono mt-0.5">Linked: {products.filter(p => p.category === cat.name).length}</p></div>
+                        <button type="button" onClick={() => handleDelete(cat.id, 'categories')} className="p-1.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-md transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
@@ -674,40 +652,37 @@ export default function AdminDashboardStation() {
             </div>
           )}
 
-          {/* TAB 4: Global Website Promotional Poster Display Banner Line Control Panel */}
+          {/* TAB 4: Promotional Poster Display Banners */}
           {activeTab === 'banners' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="bg-[#111827] border border-[#1e293b]/40 rounded-2xl p-6 shadow-xl h-fit">
-                <h3 className="text-base font-bold text-white mb-4">Deploy Display Banner</h3>
-                <form onSubmit={handleCreateBanner} className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#64748b] font-bold uppercase tracking-wider">Poster Heading Context</label>
-                    <input type="text" required value={newBannerTitle} onChange={e => setNewBannerTitle(e.target.value)} placeholder="e.g. Mega Sale 50% Off Everything" className="w-full px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-sm focus:outline-none focus:border-[#ff4d00] transition-all" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs h-fit">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Deploy Display Banner</h3>
+                <form onSubmit={handleCreateBanner} className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Poster Heading Context</label>
+                    <input type="text" required value={newBannerTitle} onChange={e => setNewBannerTitle(e.target.value)} placeholder="e.g. Mega Sale 50% Off" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#64748b] font-bold uppercase tracking-wider">Poster Background Image URL</label>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Poster Image Asset</label>
                     <div className="flex gap-2">
-                      <input type="text" required value={newBannerImage} onChange={e => setNewBannerImage(e.target.value)} placeholder="https://image-url.com" className="flex-1 px-4 py-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl text-white text-xs truncate focus:outline-none focus:border-[#ff4d00] transition-all" />
-                      <label className="px-3 py-3 bg-[#1e293b] hover:bg-[#334155] text-xs font-bold text-[#94a3b8] hover:text-white rounded-xl cursor-pointer transition-all flex items-center justify-center">Upload<input type="file" accept="image/*" onChange={(e) => handleFileUploadStream(e, 'zonix-media')} className="hidden" /></label>
+                      <input type="text" required value={newBannerImage} onChange={e => setNewBannerImage(e.target.value)} placeholder="https://image-url.com" className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs truncate outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
+                      <label className="px-3 bg-slate-200 border hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-all flex items-center justify-center">Upload<input type="file" accept="image/*" onChange={(e) => handleFileUploadStream(e, 'banner')} className="hidden" /></label>
                     </div>
                   </div>
-                  <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md">Inject Banner Card</button>
+                  <button type="submit" className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm mt-2">Inject Banner Card</button>
                 </form>
               </div>
 
-              <div className="lg:col-span-2 bg-[#111827] border border-[#1e293b]/40 rounded-2xl p-6 shadow-xl">
-                <h3 className="text-base font-bold text-white mb-6">Active Layout Frontend Posters</h3>
-                <div className="space-y-4">
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4">Active Layout Frontend Posters</h3>
+                <div className="space-y-3">
                   {banners.map((b) => (
-                    <div key={b.id} className="bg-[#0b0f19] border border-[#1e293b]/60 rounded-xl p-4 flex justify-between items-center gap-4 shadow-lg group">
-                      <div className="flex items-center gap-4">
-                        <img src={b.image} alt={b.title} className="w-24 h-14 object-cover rounded-lg border border-[#1e293b]" onError={(e) => { e.target.src = 'https://unsplash.com'; }} />
-                        <div>
-                          <h4 className="font-bold text-sm text-white group-hover:text-[#ff4d00] transition-all font-sans tracking-tight">{b.title}</h4>
-                          <p className="text-[10px] text-[#475569] font-mono mt-1">UID Array Database Token: {b.id}</p>
-                        </div>
+                    <div key={b.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center gap-3 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img src={b.image} alt={b.title} className="w-16 h-10 object-cover rounded-lg border bg-white shrink-0" onError={(e) => { e.target.src = 'https://unsplash.com'; }} />
+                        <div className="min-w-0"><h4 className="font-bold text-xs text-slate-900 truncate max-w-[250px]">{b.title}</h4><p className="text-[10px] text-slate-400 font-mono mt-0.5">ID Token: {b.id}</p></div>
                       </div>
-                      <button type="button" onClick={() => handleDelete(b.id, 'banners')} className="p-2 bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"><Trash2 className="w-4.5 h-4.5" /></button>
+                      <button type="button" onClick={() => handleDelete(b.id, 'banners')} className="p-1.5 bg-white text-slate-400 hover:text-rose-600 rounded-xl border transition-all shadow-2xs"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   ))}
                 </div>

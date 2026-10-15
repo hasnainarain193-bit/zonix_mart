@@ -1,48 +1,145 @@
 "use client";
-import React from 'react';
-import { ShoppingBag, Shield, Search, Home, Info, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { ShoppingCart, Heart, Search, User, LogOut } from 'lucide-react';
 
-export default function Header({ onSearch, cartCount }) {
+export default function Header({ cartCount, isHomePage = false, searchQuery, setSearchQuery }) {
+  const [customer, setCustomer] = useState(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const customerName = user.user_metadata?.full_name || user.email.split('@')[0];
+        setCustomer({ name: customerName, email: user.email });
+      }
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const customerName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+        setCustomer({ name: customerName, email: session.user.email });
+      } else {
+        setCustomer(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setCustomer(null);
+    window.location.href = '/';
+  };
+
   return (
-    <header className="bg-[#0b0f19] text-white border-b border-slate-800 shadow-xl sticky top-0 z-50 backdrop-blur-md bg-opacity-95">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <header className="w-full bg-[#dbdcdf] text-white sticky top-0 z-50 shadow-md border-b border-slate-800/50">
+      <div className="max-w-[1400px] mx-auto px-4 py-3 md:py-0 md:h-16 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
         
-        {/* Brand identity matrix */}
-        <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => window.location.href='/'}>
-          <div className="p-2 bg-gradient-to-r from-[#ff4d00] to-[#ff7700] rounded-xl text-white font-black text-xs tracking-tighter shadow-lg shadow-orange-950/20">ZM</div>
-          <span className="text-base font-black tracking-tighter uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent block">ZONIX MART</span>
-        </div>
-
-        {/* Global Realtime Search Filter Pipeline */}
-        <div className="flex-1 max-w-md relative hidden md:block">
-          <input 
-            type="text" 
-            onChange={(e) => onSearch && onSearch(e.target.value)}
-            className="w-full bg-[#111827] border border-slate-700/60 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-400 outline-none focus:border-[#ff4d00] font-medium shadow-inner"
-            placeholder="Search electronics, luxury perfumes, cat products..." 
-          />
-          <Search className="absolute left-3.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-        </div>
-
-        {/* Action Routes Layout Anchors */}
-        <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider">
-          <button type="button" onClick={() => window.location.href='/'} className="p-2 text-slate-400 hover:text-white transition-colors hidden lg:flex items-center gap-1">
-            <Home className="h-3.5 w-3.5" /> Home
-          </button>
-          <button type="button" onClick={() => window.location.href='/admin'} className="p-2.5 bg-[#111827] hover:bg-slate-800 rounded-xl text-slate-300 hover:text-white transition-all border border-slate-700/40 flex items-center gap-1.5 shadow-sm">
-            <Shield className="h-3.5 w-3.5 text-amber-500" /> <span>Panel Dashboard</span>
-          </button>
-
-          {/* User Session profile chip tracker element */}
-          <div className="hidden sm:flex items-center gap-2 bg-[#1e293b]/60 border border-slate-700/40 px-3 py-1.5 rounded-xl">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-black text-white">H</div>
-            <span className="text-[11px] text-slate-300 font-bold lowercase">hasnainarain193</span>
+        {/* Logo and Brand */}
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => window.location.href = '/'}>
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#ff4d00] to-[#ffaa00] flex items-center justify-center shadow">
+              <ShoppingCart className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-black text-lg tracking-tight text-[#0b0f19] uppercase">
+              Zonix<span className="text-[#ff4d00]">Mart</span>
+            </span>
           </div>
-          
-          <button type="button" onClick={() => window.location.href='/cart'} className="p-2.5 bg-gradient-to-r from-[#ff4d00] to-[#ff7700] hover:brightness-110 text-white font-black rounded-xl flex items-center gap-2 shadow-lg relative transition-all active:scale-95">
-            <ShoppingBag className="h-4 w-4" />
-            <span className="font-mono text-xs bg-slate-950/40 px-1.5 py-0.5 rounded-md">{cartCount || 0}</span>
-          </button>
+
+          {/* Mobile Actions */}
+          <div className="flex items-center gap-3 md:hidden">
+            <Heart className="w-5 h-5 text-slate-700 cursor-pointer" onClick={() => window.location.href = '/wishlist'} />
+            <div className="relative cursor-pointer" onClick={() => window.location.href = '/cart'}>
+              <ShoppingCart className="w-5 h-5 text-slate-700" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-[#ff4d00] text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+               {/* FIXED: Search box will now only show if isHomePage is true, and has a shorter premium placeholder */}
+        {isHomePage ? (
+          <div className="w-full md:flex flex-1 max-w-md relative">
+            <input
+              type="text"
+              value={searchQuery || ''}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search Products..."
+              className="w-full px-4 py-2 bg-[#0b0f19] border border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#ff4d00] text-slate-200 placeholder-slate-400"
+            />
+            {searchQuery ? (
+              <button 
+                type="button"
+                onClick={() => setSearchQuery('')} 
+                className="absolute right-3 top-2.5 text-rose-500 font-bold text-[10px] hover:underline bg-transparent border-0 cursor-pointer"
+              >
+                Clear
+              </button>
+            ) : (
+              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+            )}
+          </div>
+        ) : (
+          /* Empty placeholder box on Cart and Details view layout */
+          <div className="flex-1 max-w-md hidden md:block"></div>
+        )}
+
+
+        {/* Controls Panel */}
+        <div className="flex items-center justify-end md:justify-start gap-4 text-slate-700 w-full md:w-auto">
+          <div className="flex items-center gap-2 bg-slate-800/10 px-3 py-1.5 rounded-xl border border-slate-800/20 select-none w-full md:w-auto justify-between md:justify-start">
+            {customer ? (
+              <div className="flex items-center flex-wrap gap-2 w-full justify-between md:justify-start">
+                <div className="flex items-center gap-1.5">
+                  {/* ADMIN EXCLUSIVE CONFIGURATION: Only on Homepage & Only for Admin Email */}
+                  {isHomePage && customer.email === 'hasnainarain193@gmail.com' && (
+                    <button
+                      type="button"
+                      onClick={() => window.location.href = '/admin'}
+                      className="bg-[#ff4d00] hover:bg-[#ffaa00] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded transition-all shadow-sm"
+                    >
+                      Panel Dashboard
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 ml-auto md:ml-2">
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1 truncate max-w-[120px]">
+                    Hi, <span className="text-[#ff4d00] capitalize truncate">{customer.name}</span>
+                  </span>
+                  <button type="button" onClick={handleSignOut} className="p-1 text-slate-500 hover:text-rose-600 transition-colors" title="Sign Out">
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => window.location.href = '/login'}
+                className="flex items-center gap-1.5 bg-[#ff4d00] hover:bg-[#ffaa00] text-white text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm"
+              >
+                <User className="w-3.5 h-3.5" />
+                Login
+              </button>
+            )}
+          </div>
+
+          <Heart className="w-5 h-5 hover:text-[#ff4d00] cursor-pointer transition-colors hidden md:block text-slate-700" onClick={() => window.location.href = '/wishlist'} />
+
+          <div className="relative cursor-pointer select-none hidden md:block text-slate-700" onClick={() => window.location.href = '/cart'}>
+            <ShoppingCart className="w-5 h-5 hover:text-[#ff4d00] transition-colors" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-[#ff4d00] text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow">
+                {cartCount}
+              </span>
+            )}
+          </div>
         </div>
 
       </div>

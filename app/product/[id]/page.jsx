@@ -1,108 +1,187 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { ShoppingCart, ShieldCheck, Truck, ChevronLeft, Layers, Star } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, ShieldCheck, Truck, Layers } from 'lucide-react';
 
-export default function ProductDetailsPage({ params: paramsPromise }) {
-  // 👑 FIXED: Next.js 15 Client Unwrapping Matrix
-  const params = React.use ? React.use(paramsPromise) : React.useState(React.useUnwrap ? React.useUnwrap(paramsPromise) : paramsPromise)[0];
-  const targetId = params?.id;
-
+export default function ProductDetailPage() {
+  const { id } = useParams();
   const [product, setProduct] = useState(null);
-  const [relatedItems, setRelatedItems] = useState([]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const [cartCount, setCartCount] = useState(0);
+  const [cartLedger, setCartLedger] = useState({});
 
   useEffect(() => {
-    if (!targetId) return;
-
-    const fetchFullProductMetrics = async () => {
+    const fetchProductAndRelated = async () => {
+      if (!id) return;
       setLoading(true);
-      try {
-        const { data: targetItem, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', targetId)
-          .single();
+      
+      // 1. Fetch current selected product details
+      const { data: currentProduct, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-        if (!error && targetItem) {
-          setProduct(targetItem);
-          
-          // Stream complementary specific category rows directly below
-          const { data: related } = await supabase
+      if (!error && currentProduct) {
+        setProduct(currentProduct);
+
+        // 2. Fetch other related items from the exact same category cluster
+        if (currentProduct.category) {
+          const { data: related, error: relError } = await supabase
             .from('products')
             .select('*')
-            .eq('category', targetItem.category)
-            .neq('id', targetId)
-            .slice(0, 4);
-          if (related) setRelatedItems(related);
+            .eq('category', currentProduct.category)
+            .neq('id', currentProduct.id) // Exclude current active item
+            .limit(4); // Display standard row block limit
+
+          if (!relError && related) {
+            setRelatedProducts(related);
+          }
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
-    fetchFullProductMetrics();
-  }, [targetId]);
+    fetchProductAndRelated();
+    
+    const savedCart = localStorage.getItem('zonix_cart_ledger');
+    if (savedCart) {
+      try { setCartLedger(JSON.parse(savedCart)); } catch (e) { console.error(e); }
+    }
+  }, [id]);
+
+  const handleAddToCart = (productId) => {
+    setCartLedger(prev => {
+      const updatedCart = { ...prev, [productId]: (prev[productId] || 0) + 1 };
+      localStorage.setItem('zonix_cart_ledger', JSON.stringify(updatedCart));
+      return updatedCart;
+    });
+  };
+
+  const totalCartItemsCount = Object.values(cartLedger).reduce((sum, qty) => sum + qty, 0);
 
   if (loading) {
-    return <div className="text-center p-20 text-xs font-bold text-slate-400 font-mono uppercase">Syncing Product Ledger Matrix Node...</div>;
+    return <div className="text-center p-12 text-xs font-bold uppercase tracking-wider text-slate-400">Syncing Item Details Ledger...</div>;
   }
 
   if (!product) {
-    return <div className="text-center p-20 text-xs font-bold text-rose-400 font-mono uppercase">Target Product Configuration Log Missing Inside Cloud Tables</div>;
+    return (
+      <div className="text-center p-12 bg-white min-h-screen">
+        <p className="text-xs text-slate-500 font-bold uppercase">Product parameters not found inside the schema database.</p>
+        <button onClick={() => window.location.href = '/'} className="mt-4 text-xs font-black uppercase text-[#ff4d00]">Back To Shop</button>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-[#f8fafc] text-[#0f172a] min-h-screen font-sans">
-      <Header />
-      <main className="max-w-[1200px] mx-auto px-4 py-10 pb-24">
-        <button type="button" onClick={() => window.history.back()} className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#ff4d00] transition-colors mb-6 uppercase">
-          <ChevronLeft className="w-4 h-4" /> Back to Marketplace
+    <div className="bg-[#f8fafc] text-[#0f172a] min-h-screen flex flex-col font-sans antialiased">
+      <Header cartCount={totalCartItemsCount} isHomePage={false} />
+      
+      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+        <button 
+          onClick={() => window.location.href = '/'} 
+          className="flex items-center gap-1 text-slate-500 hover:text-[#ff4d00] text-xs font-black uppercase mb-6 transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Marketplace
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="h-96 w-full rounded-xl overflow-hidden bg-slate-50 border border-slate-100">
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover" onError={(e)=>{e.target.src='https://unsplash.com';}} />
+        {/* Core Product Presentation Node */}
+        <div className="bg-white border rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-6 p-4 md:p-6 shadow-xs mb-12">
+          <div className="w-full aspect-square rounded-xl overflow-hidden bg-slate-50 border relative">
+            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            <span className="absolute top-2 left-2 bg-[#0f172a] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded">
+              {product.category}
+            </span>
           </div>
 
-          <div className="flex flex-col justify-between gap-6">
-            <div>
-              <span className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-black uppercase rounded-md tracking-wider">{product.category}</span>
-              <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight mt-3">{product.name}</h1>
-              <p className="text-xs font-mono font-bold text-[#ff4d00] mt-1">ARTICLE SKU CODE: {product.article_no || 'GEN-SKU-990'}</p>
-              <p className="text-xs text-slate-400 mt-4 leading-relaxed">{product.description || 'No descriptive technical cataloging context configured inside core administrative database matrix panels.'}</p>
+          <div className="flex flex-col justify-between space-y-4">
+            <div className="space-y-2">
+              <h2 className="text-base md:text-lg font-black text-slate-900 leading-tight uppercase tracking-tight">{product.name}</h2>
+              <div className="text-[10px] font-mono text-slate-400 bg-slate-50 border rounded px-2 py-1 h-fit w-fit">
+                SKU Ref Tracker: {product.article_no || 'GEN-SKU'}
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed pt-2">
+                Premium high-quality asset selection compiled in Oman delivery network nodes. Order safely with original ledger metrics routing.
+              </p>
             </div>
 
-            <div className="border-t border-slate-100 pt-4">
-              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Valuation</div>
-              <div className="text-2xl font-mono font-black text-slate-900">{parseFloat(product.price_omr || 0).toFixed(3)} <span className="text-sm font-sans font-bold text-slate-400">OMR</span></div>
-              
-              <div className="flex items-center gap-4 mt-4">
-                <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50">
-                  <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-3 py-2 text-slate-500 font-bold hover:text-slate-800 text-sm">-</button>
-                  <span className="px-2 font-mono font-bold text-sm text-slate-800">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity(q => q + 1)} className="px-3 py-2 text-slate-500 font-bold hover:text-slate-800 text-sm">+</button>
-                </div>
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Market Price:</span>
+                <span className="font-mono font-black text-lg md:text-xl text-[#0f172a]">{parseFloat(product.price_omr || 0).toFixed(3)} OMR</span>
+              </div>
 
-                <button 
-                  type="button" 
-                  onClick={() => { setCartCount(c => c + quantity); alert("Product basket allocation configuration pass!"); }}
-                  className="flex-1 py-3 bg-[#ff4d00] hover:bg-[#ffaa00] text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
-                >
-                  <ShoppingCart className="w-4 h-4" /> Add to Store Basket {cartCount > 0 && `(${cartCount})`}
-                </button>
+              <button 
+                onClick={() => handleAddToCart(product.id)}
+                className="w-full bg-[#0f172a] hover:bg-[#ff4d00] text-white font-black text-xs uppercase py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow"
+              >
+                <ShoppingCart className="w-4 h-4" /> Add Item to Cart Ledger 
+                {cartLedger[product.id] > 0 && (
+                  <span className="bg-white text-[#ff4d00] px-1.5 py-0.5 rounded text-[10px] ml-1 font-black">
+                    {cartLedger[product.id]}
+                  </span>
+                )}
+              </button>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 text-[9px] font-black text-slate-500 uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg">
+                  <Truck className="w-4 h-4 text-emerald-600" /> Fast Oman Delivery
+                </div>
+                <div className="flex items-center gap-1.5 p-2 bg-slate-50 border rounded-lg">
+                  <ShieldCheck className="w-4 h-4 text-indigo-600" /> Secure Checkout Verified
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* FIXED CRITICAL REQUIREMENT: Related Categories Directory Component Grid */}
+        <div className="border-t border-slate-200 pt-8">
+          <h3 className="text-xs md:text-sm font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Layers className="h-4 w-4 text-[#ff4d00]" /> Related Products from same Category
+          </h3>
+          {relatedProducts.length === 0 ? (
+            <p className="text-xs text-slate-400 italic">No other related products found in this category slot.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {relatedProducts.map((item) => {
+                const itemQtyInCart = cartLedger[item.id] || 0;
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => window.location.href = `/product/${item.id}`}
+                    className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer p-2 relative group"
+                  >
+                    <div className="h-28 sm:h-36 w-full overflow-hidden bg-slate-50 rounded-lg">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="pt-2 flex flex-col justify-between flex-1 gap-1">
+                      <h4 className="font-bold text-[11px] text-slate-800 truncate">{item.name}</h4>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="font-mono text-[11px] font-black text-slate-900">{parseFloat(item.price_omr || 0).toFixed(3)} OMR</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Avoid page push trigger
+                            handleAddToCart(item.id);
+                          }}
+                          className={`p-1 rounded-md transition-all ${
+                            itemQtyInCart > 0 ? 'bg-[#ff4d00] text-white' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <ShoppingCart className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </main>
-      <Footer />
     </div>
   );
 }
