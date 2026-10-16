@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ShoppingCart, Heart, Search, User, LogOut } from 'lucide-react';
+import { ShoppingCart, Heart, Search, User, LogOut, Home, ClipboardList } from 'lucide-react';
 
 export default function Header({ cartCount, isHomePage = false, searchQuery, setSearchQuery }) {
   const [customer, setCustomer] = useState(null);
@@ -11,7 +11,7 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const customerName = user.user_metadata?.full_name || user.email.split('@')[0];
-        setCustomer({ name: customerName, email: user.email });
+        setCustomer({ name: customerName, email: user.email, id: user.id });
       }
     };
     checkSession();
@@ -19,7 +19,7 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const customerName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
-        setCustomer({ name: customerName, email: session.user.email });
+        setCustomer({ name: customerName, email: session.user.email, id: session.user.id });
       } else {
         setCustomer(null);
       }
@@ -35,11 +35,11 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
   };
 
   return (
-    <header className="w-full bg-[#dbdcdf] text-white sticky top-0 z-50 shadow-md border-b border-slate-800/50">
+    <header className="w-full bg-[#dbdcdf] text-slate-800 sticky top-0 z-50 shadow-md border-b border-slate-300">
       <div className="max-w-[1400px] mx-auto px-4 py-3 md:py-0 md:h-16 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
         
-        {/* Logo and Brand */}
-        <div className="flex items-center justify-between w-full md:w-auto">
+        {/* Logo and Universal Navigation */}
+        <div className="flex items-center justify-between w-full md:w-auto gap-4">
           <div className="flex items-center gap-2 cursor-pointer select-none" onClick={() => window.location.href = '/'}>
             <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#ff4d00] to-[#ffaa00] flex items-center justify-center shadow">
               <ShoppingCart className="w-5 h-5 text-white" />
@@ -49,9 +49,31 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
             </span>
           </div>
 
-          {/* Mobile Actions */}
-          <div className="flex items-center gap-3 md:hidden">
-            <Heart className="w-5 h-5 text-slate-700 cursor-pointer" onClick={() => window.location.href = '/wishlist'} />
+          {/* Universal Route Action Tokens */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => window.location.href = '/'}
+              className="p-2 hover:bg-slate-800/10 rounded-xl transition-all flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-slate-700"
+              title="Go to Homepage"
+            >
+              <Home className="w-4 h-4 text-[#ff4d00]" />
+              <span className="hidden sm:inline">Home</span>
+            </button>
+
+            {customer && (
+              <button 
+                onClick={() => window.location.href = '/my-orders'}
+                className="p-2 hover:bg-slate-800/10 rounded-xl transition-all flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-slate-700 border border-slate-400/30 bg-white/40"
+                title="View My Purchases"
+              >
+                <ClipboardList className="w-4 h-4 text-[#ffaa00]" />
+                <span>My Orders</span>
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Cart/Wishlist Icons */}
+          <div className="flex items-center gap-3 md:hidden ml-auto">
             <div className="relative cursor-pointer" onClick={() => window.location.href = '/cart'}>
               <ShoppingCart className="w-5 h-5 text-slate-700" />
               {cartCount > 0 && (
@@ -63,7 +85,7 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
           </div>
         </div>
 
-               {/* FIXED: Search box will now only show if isHomePage is true, and has a shorter premium placeholder */}
+        {/* Dynamic Search Box Wrapper */}
         {isHomePage ? (
           <div className="w-full md:flex flex-1 max-w-md relative">
             <input
@@ -73,31 +95,22 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
               placeholder="Search Products..."
               className="w-full px-4 py-2 bg-[#0b0f19] border border-slate-800 rounded-xl text-xs focus:outline-none focus:border-[#ff4d00] text-slate-200 placeholder-slate-400"
             />
-            {searchQuery ? (
-              <button 
-                type="button"
-                onClick={() => setSearchQuery('')} 
-                className="absolute right-3 top-2.5 text-rose-500 font-bold text-[10px] hover:underline bg-transparent border-0 cursor-pointer"
-              >
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-2.5 text-rose-500 font-bold text-[10px] hover:underline bg-transparent border-0 cursor-pointer">
                 Clear
               </button>
-            ) : (
-              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
             )}
           </div>
         ) : (
-          /* Empty placeholder box on Cart and Details view layout */
           <div className="flex-1 max-w-md hidden md:block"></div>
         )}
 
-
-        {/* Controls Panel */}
-        <div className="flex items-center justify-end md:justify-start gap-4 text-slate-700 w-full md:w-auto">
-          <div className="flex items-center gap-2 bg-slate-800/10 px-3 py-1.5 rounded-xl border border-slate-800/20 select-none w-full md:w-auto justify-between md:justify-start">
+        {/* Desktop Controls Framework */}
+        <div className="flex items-center gap-4 text-slate-700 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2 bg-slate-800/5 px-3 py-1.5 rounded-xl border border-slate-800/10 select-none w-full md:w-auto justify-between md:justify-start">
             {customer ? (
-              <div className="flex items-center flex-wrap gap-2 w-full justify-between md:justify-start">
-                <div className="flex items-center gap-1.5">
-                  {/* ADMIN EXCLUSIVE CONFIGURATION: Only on Homepage & Only for Admin Email */}
+              <div className="flex items-center gap-2 w-full justify-between md:justify-start">
+                <div className="flex items-center gap-2">
                   {isHomePage && customer.email === 'hasnainarain193@gmail.com' && (
                     <button
                       type="button"
@@ -107,30 +120,24 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
                       Panel Dashboard
                     </button>
                   )}
-                </div>
-
-                <div className="flex items-center gap-1 ml-auto md:ml-2">
-                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1 truncate max-w-[120px]">
-                    Hi, <span className="text-[#ff4d00] capitalize truncate">{customer.name}</span>
+                  <span className="text-xs font-bold text-slate-800 truncate max-w-[120px]">
+                    Hi, <span className="text-[#ff4d00] capitalize">{customer.name}</span>
                   </span>
-                  <button type="button" onClick={handleSignOut} className="p-1 text-slate-500 hover:text-rose-600 transition-colors" title="Sign Out">
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
                 </div>
+                <button type="button" onClick={handleSignOut} className="p-1 text-slate-500 hover:text-rose-600 transition-colors">
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => window.location.href = '/login'}
-                className="flex items-center gap-1.5 bg-[#ff4d00] hover:bg-[#ffaa00] text-white text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm"
+                className="flex items-center gap-1.5 bg-[#ff4d00] hover:bg-[#ffaa00] text-white text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm w-full justify-center md:w-auto"
               >
-                <User className="w-3.5 h-3.5" />
-                Login
+                <User className="w-3.5 h-3.5" /> Login
               </button>
             )}
           </div>
-
-          <Heart className="w-5 h-5 hover:text-[#ff4d00] cursor-pointer transition-colors hidden md:block text-slate-700" onClick={() => window.location.href = '/wishlist'} />
 
           <div className="relative cursor-pointer select-none hidden md:block text-slate-700" onClick={() => window.location.href = '/cart'}>
             <ShoppingCart className="w-5 h-5 hover:text-[#ff4d00] transition-colors" />
