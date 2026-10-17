@@ -334,14 +334,16 @@ try {
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[9px] font-bold uppercase text-slate-400 tracking-wider">Delivery Address Details</label>
-                <button 
-                  type="button" 
-                  onClick={triggerLiveDeviceGPSDiscovery} 
+                <button
+                  type="button"
+                  onClick={triggerLiveDeviceGPSDiscovery}
                   disabled={gpsLoading}
-                  className="flex items-center gap-1 text-[9px] text-[#ff4d00] font-black uppercase hover:underline bg-transparent border-0 outline-none cursor-pointer"
-                >
-                  <MapPin className="w-3 h-3" /> {gpsLoading ? "Locating..." : "Use Live Location"}
-                </button>
+                  className="flex items-center gap-1.5 text-sm text-[#ff4d00] font-black uppercase border border-[#ff4d00] bg-orange-50/30 px-2.5 py-1 rounded-md transition-all outline-none cursor-pointer hover:bg-[#ff4d00] hover:text-white disabled:opacity-50"
+               >
+                  <MapPin className="w-4 h-4" /> 
+                  {gpsLoading ? "Locating..." : "Use Live Location"}
+                  </button>
+
               </div>
               <div className="flex gap-2">
                 <input type="text" required value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:bg-white truncate" placeholder="City details, Street name, Villa info" />
