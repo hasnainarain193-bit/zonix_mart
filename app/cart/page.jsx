@@ -229,6 +229,36 @@ export default function CartCheckoutPage() {
       localStorage.removeItem('zonix_cart_ledger');
       setCartLedger({});
       setShowSuccessModal(true);
+// --- 🚨 ZONIX MART AUTOMATED EMAIL TUNNEL GATEWAY ---
+try {
+  // Format items data cleanly for mail engine mapping
+  const structuredItems = cartItems.map(item => ({
+    name: item.name,
+    quantity: item.qty,
+    price: parseFloat(item.price_omr || 0)
+  }));
+
+  // Fire live asynchronous background request to backend stream
+  await fetch('/api/send-order-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      orderId: Date.now().toString().slice(-6), // Temporary dynamic tracker id generation hook
+      customerName: formData.name || "Zonix Customer",
+      customerEmail: user?.email || "guest@zonixmart.com", 
+      items: structuredItems,
+      finalAmount: calculateGrandTotal(),
+      deliveryAddress: formData.address,
+      contactNumber: formData.phone
+    }),
+  });
+  console.log("Email pipeline executed safely to admin and customer nodes.");
+} catch (emailError) {
+  console.error("Secure connection to mail transmission route dropped:", emailError);
+}
+// --- ZONIX MART EMAIL TUNNEL END ---
 
       setTimeout(() => {
         setShowSuccessModal(false);
