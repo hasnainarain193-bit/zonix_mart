@@ -15,15 +15,17 @@ export default function LoginPage() {
     password: ''
   });
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        window.location.href = '/';
-      }
-    };
-    checkUser();
-  }, []);
+    // app/login/page.jsx (Line 20 ke karib)
+    useEffect(() => {
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Har tarah ka user authentication ke baad seedha Home Page par jayega
+      window.location.href = '/';
+    }
+  };
+  checkUser();
+    }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -53,16 +55,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (authMode === 'login') {
+            if (authMode === 'login') {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
         if (error) throw error;
+        
         alert("Login successful!");
-        window.location.href = '/';
+        window.location.href = '/'; // Login hote hi user seedha Home Page par chala jayega
+           } 
+      else if (authMode === 'register') {
 
-      } else if (authMode === 'register') {
         if (!formData.name || !formData.phone) {
           throw new Error("Please fulfill all customer registration fields.");
         }

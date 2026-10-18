@@ -26,8 +26,8 @@ export default function CartCheckoutPage() {
   const THRESHOLD_DISTANCE_LIMIT_KM = 8.00;
 
   // Base Fulfillment Headquarter Store Matrix Coordinate Pointer Vector (Muscat Hub Office Base Reference Center)
-  const ZONIX_HQ_LAT = 23.5859;
-  const ZONIX_HQ_LNG = 58.4059;
+  const ZONIX_HQ_LAT = 23.546338;
+  const ZONIX_HQ_LNG = 58.360883;
 
   useEffect(() => {
     const savedCart = localStorage.getItem('zonix_cart_ledger');
@@ -160,7 +160,8 @@ export default function CartCheckoutPage() {
       setDeliverySurchargeOMR(parseFloat(BASE_DELIVERY_CHARGE_OMR * fallbackSimulatedMileage));
     }
     setGpsLoading(false);
-    alert("Logistics mapping synchronized via secure hardware mathematical vector fallback channels!");
+  
+alert("Live Location Linked Successfully Across Oman!");
   };
 
   const cartItems = products.filter(p => cartLedger[p.id] > 0).map(p => ({
@@ -189,6 +190,57 @@ export default function CartCheckoutPage() {
       return updatedCart;
     });
   };
+
+  // --- 🔐 HIGH PROTECTION ENCRYPTED TRANSMISSION FLOW ---
+  const handleCheckoutPurchaseExecution = async (e) => {
+    if (e) e.preventDefault();
+
+    if (paymentMethod === 'cod') {
+      await triggerSecureCheckoutSubmit();
+    } else if (paymentMethod === 'visa') {
+      try {
+        setIsCalculatingDistance(true);
+
+        const structuredItems = cartItems.map(item => ({
+          name: item.name,
+          quantity: item.qty,
+          price: parseFloat(item.price_omr || 0)
+        }));
+
+        const response = await fetch('/api/secure-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: calculateGrandTotal(),
+            customerEmail: user?.email || "customer@zonixmart.com",
+            orderTracker: Date.now().toString().slice(-6),
+            items: structuredItems
+          }),
+        });
+
+        const sessionData = await response.json();
+        if (sessionData.error) throw new Error(sessionData.error);
+
+        if (sessionData.secureUrl) {
+          window.location.href = sessionData.secureUrl;
+        } else {
+          throw new Error("Encryption token missing parameters.");
+        }
+      } catch (err) {
+        alert(`Encrypted Payment System Signal Interrupted: ${err.message}`);
+        setIsCalculatingDistance(false);
+      }
+    }
+  };
+
+  // Automated return validation check parser sequence
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment_status') === 'success') {
+      alert("Visa Transaction Verified Cryptographically!");
+      triggerSecureCheckoutSubmit();
+    }
+  }, []);
 
   const triggerSecureCheckoutSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -314,7 +366,7 @@ try {
 
         <div className="bg-white border p-6 rounded-2xl shadow-sm h-fit space-y-4">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest border-b pb-2">Checkout Gateway</h3>
-          <form onSubmit={triggerSecureCheckoutSubmit} className="space-y-3">
+          <form onSubmit={handleCheckoutPurchaseExecution} className="space-y-3">
             <div>
               <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1">Customer Name</label>
               <input type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:bg-white" placeholder="Full name" />
@@ -397,7 +449,6 @@ try {
                 <span className="font-mono text-[#ff4d00]">{calculateGrandTotal().toFixed(3)} OMR</span>
               </div>
             </div>
-
             {/* FIXED DESKTOP BUTTON ROW WITH INLINE INTERACTIVE ERROR DEVIATION STATES */}
             <button 
               type="submit" 

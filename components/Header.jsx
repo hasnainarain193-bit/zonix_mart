@@ -78,7 +78,7 @@ export default function Header({ cartCount, isHomePage = false, searchQuery, set
               <ShoppingCart className="w-5 h-5 text-slate-700" />
               {cartCount > 0 && (
                 <span className="absolute -top-1.5 -right-2 bg-[#ff4d00] text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
-                  {cartCount}
+                  {cartCount} 
                 </span>
               )}
             </div>

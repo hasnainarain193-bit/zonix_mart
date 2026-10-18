@@ -47,20 +47,40 @@ export default function AdminDashboardStation() {
   const [liveStats, setLiveStats] = useState({ activeUsers: 42 });
 
   // STRICT SECURITY CHECK LAYER
+    // HARDENED FIXED ROUTE FIREWALL LAYER WITH ACTIVE SESSION WAITING STATE
   useEffect(() => {
     const verifyAdminSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.email === 'hasnainarain193@gmail.com') {
-        setIsAdmin(true);
-        fetchAllSystemData();
-      } else {
-        alert("Unauthorized Access. Admin security routing blocked this channel.");
+      try {
+        // Step 1: Secure session recovery from browser memory
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+
+        // Step 2: Fallback check using user explicit stream if session fields mismatch
+        const { data: { user } } = await supabase.auth.getUser();
+
+        const activeEmail = session?.user?.email || user?.email;
+
+        // Step 3: Validate active admin email parameters strictly
+        if (activeEmail === 'hasnainarain193@gmail.com') {
+          setIsAdmin(true);
+          await fetchAllSystemData();
+        } else {
+          // If authorization payload criteria fails, bounce safely
+          console.log("Unauthorized access node blocked.");
+          window.location.href = '/';
+        }
+      } catch (authError) {
+        console.error("Critical Admin Firewall Sync Error:", authError);
         window.location.href = '/';
+      } finally {
+        setCheckingAuth(false);
       }
-      setCheckingAuth(false);
     };
+    
     verifyAdminSession();
   }, []);
+
 
   // Async Multi-Table Sourcing Data Flow Pipeline
   const fetchAllSystemData = async () => {
