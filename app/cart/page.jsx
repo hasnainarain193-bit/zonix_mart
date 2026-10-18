@@ -191,47 +191,21 @@ alert("Live Location Linked Successfully Across Oman!");
     });
   };
 
-  // --- 🔐 HIGH PROTECTION ENCRYPTED TRANSMISSION FLOW ---
-  const handleCheckoutPurchaseExecution = async (e) => {
-    if (e) e.preventDefault();
-
-    if (paymentMethod === 'cod') {
-      await triggerSecureCheckoutSubmit();
-    } else if (paymentMethod === 'visa') {
-      try {
-        setIsCalculatingDistance(true);
-
-        const structuredItems = cartItems.map(item => ({
-          name: item.name,
-          quantity: item.qty,
-          price: parseFloat(item.price_omr || 0)
-        }));
-
-        const response = await fetch('/api/secure-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: calculateGrandTotal(),
-            customerEmail: user?.email || "customer@zonixmart.com",
-            orderTracker: Date.now().toString().slice(-6),
-            items: structuredItems
-          }),
-        });
-
-        const sessionData = await response.json();
-        if (sessionData.error) throw new Error(sessionData.error);
-
-        if (sessionData.secureUrl) {
-          window.location.href = sessionData.secureUrl;
-        } else {
-          throw new Error("Encryption token missing parameters.");
-        }
-      } catch (err) {
-        alert(`Encrypted Payment System Signal Interrupted: ${err.message}`);
-        setIsCalculatingDistance(false);
-      }
-    }
-  };
+ // --- 🔐 STRIPE COMPLETELY DELETED - LOCAL OMAN FALLBACK ACTIVE ---
+const handleCheckoutPurchaseExecution = async (e) => {
+  if (e) e.preventDefault();
+  
+  try {
+    setIsCalculatingDistance(true);
+    
+    // Directly invoke internal Supabase order submission logic securely
+    await triggerSecureCheckoutSubmit();
+    
+  } catch (err) {
+    alert(`Checkout Submission Error: ${err.message}`);
+    setIsCalculatingDistance(false);
+  }
+};
 
   // Automated return validation check parser sequence
   useEffect(() => {
