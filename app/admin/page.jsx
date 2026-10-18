@@ -438,9 +438,33 @@ export default function AdminDashboardStation() {
                   <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl select-none sm:mt-5 cursor-pointer" onClick={() => setFormData({...formData, is_featured: !formData.is_featured})}>
                     <button type="button" className={`p-1 rounded transition-all ${formData.is_featured ? 'text-[#ffaa00]' : 'text-slate-400'}`}><Star className="w-4 h-4 fill-current" /></button>
                     <div><p className="text-xs font-bold text-slate-800">Prioritize Top Placement</p><p className="text-[9px] text-slate-400">Force to topmost row row grid view</p></div>
+                     </div>
+                  {/* --- 📝 PRODUCT DESCRIPTION MATRIX INJECTION --- */}
+                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Description *</label>
+                    <textarea 
+                      required 
+                      rows={3}
+                      value={formData.description || ''} 
+                      onChange={e => setFormData({...formData, description: e.target.value})} 
+                      placeholder="Write complete product details, highlights, specs, or packaging sizes..." 
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all resize-none shadow-xs" 
+                    />
+                  </div>
+
+                  {/* --- 🏷️ EXTRA SEARCH KEYWORDS / META TAGS --- */}
+                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Extra Search Keywords (Separate with commas)</label>
+                    <input
+                      type="text"
+                      value={formData.keywords || ''}
+                      onChange={e => setFormData({...formData, keywords: e.target.value})}
+                      placeholder="e.g. Perfume, Arabic, Luxury, Best Seller, New Arrival..."
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all"
+                    />
                   </div>
                   <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-2 border-t pt-3 mt-2">
-                    {editMode && (<button type="button" onClick={() => { setEditMode(false); setTargetId(null); setFormData({ name: '', price_omr: '', inventory: '', category: '', tags: '', image: '', description: '', article_no: '', is_featured: false }); }} className="px-3 py-2 bg-slate-100 text-slate-500 hover:text-slate-800 rounded-xl text-xs font-bold transition-all">Cancel</button>)}
+                    {editMode && (<button type="button" onClick={() => { setEditMode(false); setTargetId(null); setFormData({ name: '', price_omr: '', inventory: '', category: '', tags: '', image: '', description: '', article_no: '', keywords: '', is_featured: false }); }} className="px-3 py-2 bg-slate-100 text-slate-500 hover:text-slate-800 rounded-xl text-xs font-bold transition-all">Cancel</button>)}
                     <button type="submit" className="px-4 py-2 bg-slate-900 hover:bg-[#ff4d00] text-white font-bold text-xs rounded-xl uppercase tracking-wider shadow-sm transition-all">Save Product Record</button>
                   </div>
                 </form>
@@ -535,32 +559,7 @@ export default function AdminDashboardStation() {
                   {btn.label}
                 </button>
               ))}
-            </div>
-                  {/* --- 📝 PRODUCT DESCRIPTION MATRIX INJECTION --- */}
-                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Description *</label>
-                    <textarea 
-                      required 
-                      rows={3}
-                      value={formData.description || ''} 
-                      onChange={e => setFormData({...formData, description: e.target.value})} 
-                      placeholder="Write complete product details, highlights, specs, or packaging sizes..." 
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all resize-none shadow-xs" 
-                    />
-                  </div>
-
-                  {/* --- 🏷️ EXTRA SEARCH KEYWORDS / META TAGS --- */}
-                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Extra Search Keywords (Separate with commas)</label>
-                    <input 
-                      type="text" 
-                      value={formData.keywords || ''} 
-                      onChange={e => setFormData({...formData, keywords: e.target.value})} 
-                      placeholder="e.g. Perfume, Arabic, Luxury, Best Seller, New Arrival..." 
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all shadow-xs" 
-                    />
-                    <p className="text-[9px] text-slate-400 font-medium mt-0.5">These keywords allow the home catalog grid to instantly filter this product when typed into the top search layout.</p>
-                  </div>
+              </div>
 
             {/* Orders Data Table Node */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
