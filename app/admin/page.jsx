@@ -536,6 +536,31 @@ export default function AdminDashboardStation() {
                 </button>
               ))}
             </div>
+                  {/* --- 📝 PRODUCT DESCRIPTION MATRIX INJECTION --- */}
+                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Description *</label>
+                    <textarea 
+                      required 
+                      rows={3}
+                      value={formData.description || ''} 
+                      onChange={e => setFormData({...formData, description: e.target.value})} 
+                      placeholder="Write complete product details, highlights, specs, or packaging sizes..." 
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all resize-none shadow-xs" 
+                    />
+                  </div>
+
+                  {/* --- 🏷️ EXTRA SEARCH KEYWORDS / META TAGS --- */}
+                  <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Extra Search Keywords (Separate with commas)</label>
+                    <input 
+                      type="text" 
+                      value={formData.keywords || ''} 
+                      onChange={e => setFormData({...formData, keywords: e.target.value})} 
+                      placeholder="e.g. Perfume, Arabic, Luxury, Best Seller, New Arrival..." 
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs outline-none focus:border-[#ff4d00] focus:bg-white transition-all shadow-xs" 
+                    />
+                    <p className="text-[9px] text-slate-400 font-medium mt-0.5">These keywords allow the home catalog grid to instantly filter this product when typed into the top search layout.</p>
+                  </div>
 
             {/* Orders Data Table Node */}
             <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
