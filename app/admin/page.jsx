@@ -401,6 +401,33 @@ export default function AdminDashboardStation() {
                       {categories.map((cat, idx) => (<option key={idx} value={cat.name}>{cat.name}</option>))}
                     </select>
                   </div>
+                  {/* --- 📸 SECURE CLOUD IMAGE UPLOAD MATRIX --- */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Display Image *</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={formData.image}
+                        onChange={e => setFormData({...formData, image: e.target.value})}
+                        placeholder="Cloud media storage link or url..."
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs truncate outline-none focus:border-[#ff4d00] focus:bg-white transition-all"
+                      />
+                      <label className="px-3 bg-slate-200 border border-slate-300 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-all flex items-center justify-center shrink-0">
+                        {uploading ? "Uploading..." : "Upload File"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUploadStream(e, 'product')}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                      </label>
+                    </div>
+                    {formData.image && (
+                      <p className="text-[9px] text-emerald-600 font-bold mt-0.5">✓ Image asset cloud validation synced</p>
+                    )}
+                  </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Article No / SKU Reference *</label>
                     <input type="text" required value={formData.article_no} onChange={e => setFormData({...formData, article_no: e.target.value})} placeholder="e.g. AR-PERF-092" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-mono focus:outline-none focus:border-[#ff4d00] focus:bg-white transition-all" />
@@ -436,35 +463,6 @@ export default function AdminDashboardStation() {
                         <th className="p-3">Warehouse Status</th>
                         <th className="p-3 text-right">Actions</th>
                       </tr>
-                                        {/* --- 📸 SECURE CLOUD IMAGE UPLOAD MATRIX INJECTION --- */}
-                  <div className="className=space-y-1">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Product Display Image *</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        required 
-                        value={formData.image} 
-                        onChange={e => setFormData({...formData, image: e.target.value})} 
-                        placeholder="Cloud media storage link or url..." 
-                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs truncate outline-none focus:border-[#ff4d00] focus:bg-white transition-all" 
-                      />
-                      <label className="px-3 bg-slate-200 border border-slate-300 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700 cursor-pointer transition-all flex items-center justify-center shrink-0">
-                        {uploading ? "Uploading..." : "Upload File"}
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={(e) => handleFileUploadStream(e, 'product')} 
-                          className="hidden" 
-                          disabled={uploading}
-                        />
-                      </label>
-                    </div>
-                    {formData.image && (
-                      <p className="text-[9px] text-emerald-600 font-bold mt-0.5">✓ Image asset cloud validation synced</p>
-                    )}
-                  </div>
-                  {/* --- IMAGE UPLOAD COMPONENT END --- */}
-
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
                       {products.length === 0 ? (<tr><td colSpan="6" className="p-6 text-center text-xs font-bold text-slate-400 uppercase">No products configured inside database grid.</td></tr>) : (
