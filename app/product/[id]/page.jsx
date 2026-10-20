@@ -102,9 +102,47 @@ export default function ProductDetailPage() {
               <div className="text-[10px] font-mono text-slate-400 bg-slate-50 border rounded px-2 py-1 h-fit w-fit">
                 SKU Ref Tracker: {product.article_no || 'GEN-SKU'}
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed pt-2">
-                Premium high-quality asset selection compiled in Oman delivery network nodes. Order safely with original ledger metrics routing.
-              </p>
+            <div className="text-xs md:text-sm text-slate-700 leading-relaxed pt-2 whitespace-pre-line bg-white border border-slate-200/60 p-5 rounded-2xl shadow-2xs space-y-4">
+  {(() => {
+    if (!product?.description) return "No description parameters uploaded for this unit configuration.";
+    
+    // Line breaks ke sath paragraphs split karne ke liye array pipeline
+    const lines = product.description.split('\n');
+    
+    return lines.map((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // 1. Dynamic Main Headings Formatter Hub (Overview, Key Ingredients, etc.)
+      if (trimmedLine.endsWith(':') || trimmedLine.toLowerCase().includes('ingredients') || trimmedLine.toLowerCase().includes('overview')) {
+        return (
+          <p key={index} className="text-slate-950 font-black text-sm uppercase tracking-wider mt-4 first:mt-0 text-[#ff4d00] border-b pb-1 border-slate-100">
+            {trimmedLine}
+          </p>
+        );
+      }
+      
+      // 2. Sequential Ordered Numbers List Formatter (1., 2., 3., etc.)
+      const numberListMatch = trimmedLine.match(/^(\d+\.\s*)(.*)/);
+      if (numberListMatch) {
+        return (
+          <div key={index} className="flex items-start gap-2 pl-1 mt-2">
+            <span className="font-black text-[#ff4d00] shrink-0 font-mono">{numberListMatch[1]}</span>
+            <p className="text-slate-700 font-medium">{numberListMatch[2]}</p>
+          </div>
+          );
+          }
+      
+            // Default Base Body Context Line Node
+            return trimmedLine !== '' ? (
+           <p key={index} className="text-slate-600 font-medium pl-1 mt-1">{trimmedLine}</p>
+            ) : (
+            <div key={index} className="h-2" />
+            );
+            });
+            })()}
+          </div>
+
+
             </div>
 
             <div className="space-y-4 border-t pt-4">

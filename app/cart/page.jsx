@@ -191,30 +191,67 @@ alert("Live Location Linked Successfully Across Oman!");
     });
   };
 
- // --- 🔐 STRIPE COMPLETELY DELETED - LOCAL OMAN FALLBACK ACTIVE ---
-const handleCheckoutPurchaseExecution = async (e) => {
+ const handleCheckoutPurchaseExecution = async (e) => {
   if (e) e.preventDefault();
+  if (cartItems.length === 0) return alert("Your basket ledger is empty.");
   
-  try {
-    setIsCalculatingDistance(true);
-    
-    // Directly invoke internal Supabase order submission logic securely
+  if (!formData.name || !formData.phone || !formData.address) {
+    return alert("Please fulfill all customer required form fields.");
+  }
+
+  // 1. Agar payment method Cash on Delivery (COD) hai
+  if (paymentMethod === 'cod') {
     await triggerSecureCheckoutSubmit();
+    return;
+  }
+
+  // 2. Agar payment method Visa Card (Thawani Online Gateway) hai
+  setLoading(true);
+  try {
+    const temporaryOrderId = Date.now().toString().slice(-6);
     
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: calculateGrandTotal(),
+        orderTracker: temporaryOrderId,
+        customerEmail: formData.email || 'guest@zonixmart.com',
+        clientName: formData.name,
+        cartItems: cartItems
+      })
+    });
+
+    const runtimeGatewayNode = await res.json();
+    
+    if (runtimeGatewayNode.success && runtimeGatewayNode.url) {
+      // Customer ko Thawani ke official secure payment window par bhejein
+      window.location.href = runtimeGatewayNode.url;
+    } else {
+      throw new Error(runtimeGatewayNode.error || "Gateway initialization timeout.");
+    }
   } catch (err) {
-    alert(`Checkout Submission Error: ${err.message}`);
-    setIsCalculatingDistance(false);
+    alert(`Oman Gateway Error: ${err.message}`);
+    setLoading(false);
   }
 };
 
-  // Automated return validation check parser sequence
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('payment_status') === 'success') {
-      alert("Visa Transaction Verified Cryptographically!");
+
+ useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment_status') === 'success') {
+    alert("Oman Net Secure Transaction Verified Successfully!");
+    
+    // LocalStorage se data wapas read karenge taaki cart empty na mile
+    const savedCart = localStorage.getItem('zonix_cart_ledger');
+    if (savedCart && Object.keys(JSON.parse(savedCart)).length > 0) {
       triggerSecureCheckoutSubmit();
     }
-  }, []);
+  } else if (urlParams.get('payment_status') === 'cancel') {
+    alert("Payment was cancelled by user. Please try again.");
+  }
+}, [products]); // products state dependency lagayein taaki metadata load ho sake
+
 
   const triggerSecureCheckoutSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -244,6 +281,7 @@ const handleCheckoutPurchaseExecution = async (e) => {
         product_name: concatenatedNames, 
         product_article: concatenatedArticles,
         product_price: concatenatedPrices, 
+        product_image: concatenatedImages, 
         total_price_omr: calculateGrandTotal(), 
         payment_mode: paymentMethod,
         user_id: user ? user.id : null 

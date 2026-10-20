@@ -11,6 +11,9 @@ export default function CustomerOrdersHistoryPage() {
   const [customer, setCustomer] = useState(null);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
 
+  // Default backup dynamic placeholder image asset
+  const FALLBACK_DEFAULT_IMAGE = "https://unsplash.com";
+
   useEffect(() => {
     const fetchUserSpecificOrders = async () => {
       try {
@@ -52,11 +55,15 @@ export default function CustomerOrdersHistoryPage() {
       <Header cartCount={0} isHomePage={false} />
       
       <main className="max-w-4xl mx-auto px-4 py-6 md:py-10 flex-1 w-full space-y-6">
-        <button onClick={() => window.location.href = '/'} className="flex items-center gap-1 text-slate-500 hover:text-[#ff4d00] text-xs font-black uppercase transition-all outline-none"><ArrowLeft className="w-4 h-4" /> Continue Shopping</button>
+        <button onClick={() => window.location.href = '/'} className="flex items-center gap-1 text-slate-500 hover:text-[#ff4d00] text-xs font-black uppercase transition-all outline-none">
+          <ArrowLeft className="w-4 h-4" /> Continue Shopping
+        </button>
 
         <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#ff4d00]/10 flex items-center justify-center"><ClipboardList className="h-4 w-4 text-[#ff4d00]" /></div>
+            <div className="w-8 h-8 rounded-lg bg-[#ff4d00]/10 flex items-center justify-center">
+              <ClipboardList className="h-4 w-4 text-[#ff4d00]" />
+            </div>
             <div>
               <h2 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900">My Purchase Ledger</h2>
               <p className="text-[10px] text-slate-400 font-mono mt-0.5 hidden sm:block">Logged account footprint: {customer?.email}</p>
@@ -66,10 +73,14 @@ export default function CustomerOrdersHistoryPage() {
         </div>
 
         {loading ? (
-          <div className="text-center p-16 text-xs font-bold text-slate-400 animate-pulse uppercase tracking-widest">Syncing Personal Secure Ledger Arrays...</div>
+          <div className="text-center p-16 text-xs font-bold text-slate-400 animate-pulse uppercase tracking-widest">
+            Syncing Personal Secure Ledger Arrays...
+          </div>
         ) : orders.length === 0 ? (
           <div className="bg-white border rounded-2xl p-12 text-center shadow-xs max-w-md mx-auto space-y-4">
-            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto text-slate-400"><ShoppingBag className="w-6 h-6" /></div>
+            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto text-slate-400">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
             <div><h3 className="text-xs font-bold uppercase tracking-wide text-slate-700">No Orders Located</h3></div>
             <button onClick={() => window.location.href = '/'} className="px-4 py-2 bg-slate-900 text-white font-black text-[10px] uppercase rounded-lg shadow">Browse Products</button>
           </div>
@@ -79,9 +90,10 @@ export default function CustomerOrdersHistoryPage() {
               const currentStatusNode = (ord.status_node || 'pending').toLowerCase().trim();
               const timestamp = formatOrderTimestamp(ord.created_at);
               
-              const imageArray = (ord.product_image || '').split(',');
-              const primaryDisplayImage = imageArray[0]?.trim();
-              const itemsCount = imageArray.length;
+              const imageArray = (ord.product_image || ord.image || '').split(',');
+              const rawImg = imageArray[0]?.trim();
+              const primaryDisplayImage = (rawImg && rawImg.startsWith('http')) ? rawImg : FALLBACK_DEFAULT_IMAGE;
+              const itemsCount = imageArray.filter(img => img.trim() !== '').length;
 
               return (
                 <div 
@@ -91,13 +103,18 @@ export default function CustomerOrdersHistoryPage() {
                 >
                   <div className="flex gap-3 items-center min-w-0 w-full sm:w-auto">
                     <div className="relative shrink-0">
-                      <img src={primaryDisplayImage} alt="Order Box" className="w-12 h-12 object-cover rounded-lg border bg-slate-50 group-hover:scale-102 transition-transform" onError={(e)=>{e.target.src='https://unsplash.com';}} />
+                      <img 
+                        src={primaryDisplayImage} 
+                        alt="Order Box" 
+                        className="w-12 h-12 object-cover rounded-lg border bg-slate-50 group-hover:scale-102 transition-transform" 
+                        onError={(e)=>{e.target.src = FALLBACK_DEFAULT_IMAGE;}} 
+                      />
                       {itemsCount > 1 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-slate-900 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">+{itemsCount - 1}</span>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold text-slate-900 truncate max-w-[280px] md:max-w-[400px] capitalize">{ord.product_name}</h4>
+                      <h4 className="text-xs font-bold text-slate-900 truncate max-w-[280px] md:max-w-[400px] capitalize">{ord.product_name?.replace(/^:\s*/, '')}</h4>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-mono text-slate-400 mt-1">
                         <span>Order ID: <span className="text-[#ff4d00] font-bold">#{ord.id}</span></span>
                         <span className="text-slate-300">•</span>
@@ -127,18 +144,20 @@ export default function CustomerOrdersHistoryPage() {
           </div>
         )}
 
-        {/* RE-ENGINEERED 100% ACCURATE POPUP DETAILS BREAKDOWN MODAL */}
+        {/* MODAL POPUP MODEST BREAKDOWN FOR ORDERS */}
         {selectedOrderDetails && (() => {
           const timestamp = formatOrderTimestamp(selectedOrderDetails.created_at);
           const nameList = (selectedOrderDetails.product_name || '').split(',');
-          const imageList = (selectedOrderDetails.product_image || '').split(',');
+          
+          const rawImageString = selectedOrderDetails.product_image || selectedOrderDetails.image || '';
+          const imageList = rawImageString.split(',');
+          
           const skuList = (selectedOrderDetails.product_article || '').split(',');
           const priceList = (selectedOrderDetails.product_price || '').split(',');
-
           const dynamicInvoiceGrandTotal = parseFloat(selectedOrderDetails.total_price_omr || 0);
 
           return (
-            <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
               <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
                 <div className="p-4 border-b flex justify-between items-center bg-slate-50">
                   <div className="flex items-center gap-2">
@@ -147,27 +166,27 @@ export default function CustomerOrdersHistoryPage() {
                   </div>
                   <button type="button" onClick={() => setSelectedOrderDetails(null)} className="text-[10px] bg-slate-200 hover:bg-rose-500 hover:text-white text-slate-700 font-black uppercase px-3 py-1.5 rounded-xl cursor-pointer border-0 transition-all outline-none">Close</button>
                 </div>
-
                 <div className="p-5 overflow-y-auto space-y-4 text-xs bg-white">
                   <div className="p-3 bg-slate-50 border rounded-xl grid grid-cols-2 gap-2">
                     <div><span className="text-[9px] text-slate-400 block font-medium">Customer Name</span><p className="font-bold text-slate-900 capitalize">{selectedOrderDetails.customer_name}</p></div>
                     <div><span className="text-[9px] text-slate-400 block font-medium">Mobile Identifier</span><p className="font-mono text-slate-800 font-bold">{selectedOrderDetails.customer_phone}</p></div>
                   </div>
-                  {/* ITEM MAPPING BUNDLE MATRIX WITH REAL INDIVIDUAL PRICES */}
+
                   <div className="space-y-2">
                     <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider pl-1 block">Purchased Bundle Content Breakdowns</span>
                     <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
                       {nameList.map((name, idx) => {
-                        const cleanName = name.trim();
+                        let cleanName = name.trim();
+                        if (cleanName.startsWith(':')) {
+                          cleanName = cleanName.substring(1).trim();
+                        }
                         
-                        // 1. Dynamic Regex Quantity Extractor
                         let itemQuantity = 1;
                         const qtyMatch = cleanName.match(/\(x(\d+)\)/i);
                         if (qtyMatch && qtyMatch[1]) {
                           itemQuantity = parseInt(qtyMatch[1]);
                         }
 
-                        // 2. Back-Compatible Multi-Price Extraction Formula
                         let itemUnitPrice = 0;
                         if (priceList[idx] && priceList[idx].trim() !== "" && !isNaN(parseFloat(priceList[idx]))) {
                           itemUnitPrice = parseFloat(priceList[idx].trim());
@@ -177,14 +196,22 @@ export default function CustomerOrdersHistoryPage() {
                         }
 
                         const totalRowPayable = itemUnitPrice * itemQuantity;
+                      
+                         const rawImgUrl = imageList[idx] ? imageList[idx].trim() : '';
 
+                        const finalProductImg = (rawImgUrl && rawImgUrl.startsWith('http')) 
+                         ? rawImgUrl 
+                        : "https://unsplash.com"; 
+
+                
                         return (
                           <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <img 
-                                src={imageList[idx]?.trim() || 'https://unsplash.com'} 
+                                src={finalProductImg} 
+                                alt=""
                                 className="w-10 h-10 object-cover rounded-lg border bg-white shadow-2xs shrink-0" 
-                                onError={(e)=>{e.target.src='https://unsplash.com';}} 
+                                onError={(e) => { e.target.src = "https://unsplash.com"; }}
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="font-bold text-slate-900 text-xs capitalize truncate">{cleanName}</div>
@@ -192,7 +219,6 @@ export default function CustomerOrdersHistoryPage() {
                               </div>
                             </div>
                             
-                            {/* DYNAMIC ROW AMOUNT DETAILS LABELS */}
                             <div className="text-right shrink-0">
                               <div className="text-[9px] text-slate-400 font-medium lowercase">
                                 {itemUnitPrice.toFixed(3)} OMR x {itemQuantity}
@@ -218,7 +244,6 @@ export default function CustomerOrdersHistoryPage() {
                     </div>
                   </div>
 
-                  {/* ITEMISED ACCOUNT BILLING BREAKDOWNS */}
                   <div className="p-3 bg-slate-50 border rounded-xl space-y-1.5 text-[11px] font-medium text-slate-600">
                     <div className="flex justify-between items-center">
                       <span>Items Aggregate Subtotal:</span>
