@@ -544,9 +544,7 @@ export default function AdminDashboardStation() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* TAB 2: Advanced Products ERP Publisher Management */}
+          )}          {/* TAB 2: Advanced Products ERP Publisher Management */}
           {activeTab === 'products' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-xl shadow-2xs">
@@ -554,9 +552,7 @@ export default function AdminDashboardStation() {
                 <button onClick={() => setIsProductFormVisible(!isProductFormVisible)} className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-all outline-none">
                   {isProductFormVisible ? 'Hide Add Product' : 'Add Product Page'}
                 </button>
-              </div>
-
-              {isProductFormVisible && (
+              </div>              {isProductFormVisible && (
                 <div id="product-creation-form" className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
                   <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-1.5">Add Product To Grid</h3>
                   <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -616,93 +612,280 @@ export default function AdminDashboardStation() {
                 </div>
               )}
 
+
+               {/* TAB 1: Advanced Orders Tracker Component Isolated Container Node */}
+      {activeTab === 'orders' && (
+        <div className="space-y-4 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest flex items-center gap-1">
+              <ClipboardList className="w-4 h-4 text-[#ff4d00]" /> Orders Live Tracking Folio
+            </h3>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-xl text-xs w-full sm:w-auto">
+                <Calendar className="w-3.5 h-3.5 text-[#ff4d00]" />
+                <input type="date" value={orderDateFilter} onChange={e => setOrderDateFilter(e.target.value)} className="bg-transparent text-slate-700 outline-none text-xs cursor-pointer w-full" />
+              </div>
+              <div className="relative w-full sm:w-64">
+                <input type="text" value={orderSearchQuery} onChange={e => setOrderSearchQuery(e.target.value)} placeholder="Search Order ID or Name..." className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#ff4d00] focus:bg-white pl-8 text-slate-800" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Status फ़िल्टर बटन्स */}
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            {[
+              { id: 'all', label: 'All Orders' },
+              { id: 'pending', label: 'Pending' },
+              { id: 'live', label: 'Live' },
+              { id: 'complete', label: 'Completed' },
+              { id: 'cancel', label: 'Cancelled' }
+            ].map((btn) => (
+              <button key={btn.id} type="button" onClick={() => setStatusFilter(btn.id)} className={`flex-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${statusFilter === btn.id ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>{btn.label}</button>
+            ))}
+          </div>
+
+          {/* Master Orders Data Grid Table View */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-200">
+                    <th className="p-3 w-16">Order No</th>
+                    <th className="p-3">Customer Credentials</th>
+                    <th className="p-3">Route Destination Address</th>
+                    <th className="p-3">Live Geo Link</th>
+                    <th className="p-3">Order Status Change</th>
+                    <th className="p-3">Invoice Sum</th>
+                    <th className="p-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
+                  {(() => {
+                    let filtered = [...orders];
+                    if (orderDateFilter) filtered = filtered.filter(o => o.created_at?.startsWith(orderDateFilter));
+                    if (orderSearchQuery.trim()) {
+                      const q = orderSearchQuery.toLowerCase().trim();
+                      filtered = filtered.filter(o => o.id?.toString().includes(q) || o.customer_name?.toLowerCase().includes(q));
+                    }
+                    if (statusFilter !== 'all') filtered = filtered.filter(o => (o.status_node || 'pending') === statusFilter);
+
+                    if (filtered.length === 0) return <tr><td colSpan="7" className="p-6 text-center text-slate-400 uppercase font-bold">No registered customer orders found.</td></tr>;
+
+                    return filtered.map((ord) => (
+                      <tr key={ord.id} className="hover:bg-slate-50/50 transition-all">
+                        <td className="p-3 font-mono font-black text-[#ff4d00]">#{ord.id}</td>
+                        <td className="p-3">
+                          <button type="button" onClick={() => setSelectedOrderNode(ord)} className="text-left outline-none block hover:underline">
+                            <div className="font-bold text-slate-900 text-xs capitalize">{ord.customer_name}</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{ord.customer_email || 'no-email@zonix.com'}</div>
+                          </button>
+                        </td>
+                        <td className="p-3">
+                          <div className="text-slate-700 max-w-44 truncate font-medium">{ord.customer_address}</div>
+                          <div className="text-[10px] text-slate-400 font-bold font-mono mt-0.5">Ph: {ord.customer_phone}</div>
+                        </td>
+                        <td className="p-3">
+                          {ord.location_url ? (
+                            <div className="flex items-center gap-1">
+                              <a href={ord.location_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded text-[10px] font-bold"><MapPin className="w-3 h-3" /> Link</a>
+                              <button onClick={() => copyToClipboard(ord.location_url, ord.id)} className="p-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-500 transition-all">
+                                {copiedOrderId === ord.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </div>
+                          ) : <span className="text-slate-300 font-mono text-[10px]">No Link</span>}
+                        </td>
+                        <td className="p-3">
+                          <select value={ord.status_node || 'pending'} onChange={async (e) => {
+                            const state = e.target.value;
+                            const { error } = await supabase.from('orders').update({ status_node: state }).eq('id', ord.id);
+                            if (!error) { alert("Status node updated live!"); fetchAllSystemData(); }
+                          }} className="px-1.5 py-1 rounded bg-white border text-[10px] font-black uppercase text-slate-800 outline-none cursor-pointer focus:border-slate-400">
+                            <option value="pending">Pending COD</option>
+                            <option value="live">Live</option>
+                            <option value="complete">Completed</option>
+                            <option value="cancel">Cancelled</option>
+                          </select>
+                        </td>
+                        <td className="p-3 font-mono font-black text-slate-900">{parseFloat(ord.total_price_omr || 0).toFixed(3)} OMR</td>
+                        <td className="p-3 text-right">
+                          <button type="button" onClick={() => handleDelete(ord.id, 'orders')} className="p-1.5 bg-slate-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
               {/* Full Catalog Inventory Table Grid Array */}
               <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
                 <div className="p-4 border-b flex justify-between items-center bg-white">
                   <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest">Full Warehouse Inventory Ledger</h3>
                 </div>
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
+                  <table className="w-full text-left border-collapse min-w-[750px]">
                     <thead>
                       <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-200">
-                        <th className="p-3">Item Details & SKU</th>
-                        <th className="p-3">Category Cluster</th>
-                        <th className="p-3">Financial Value</th>
-                        <th className="p-3">Warehouse Status</th>
-                        <th className="p-3 text-right">Actions</th>
+                        <th className="p-4">Item Details & SKU</th>
+                        <th className="p-4">Category Cluster</th>
+                        <th className="p-4">Financial Value</th>
+                        <th className="p-4">Warehouse Status</th>
+                        <th className="p-4 text-center w-28">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
                       {products.length === 0 ? (
-                        <tr><td colSpan="5" className="p-6 text-center text-xs font-bold text-slate-400 uppercase">No catalog entries stored in database.</td></tr>
+                        <tr>
+                          <td colSpan="5" className="p-6 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            No catalog entries stored in database grid.
+                          </td>
+                        </tr>
                       ) : (
                         products.map((prod) => (
-                          <tr key={prod.id} className={`hover:bg-slate-50/50 ${prod.is_featured ? 'bg-amber-50/30' : ''}`}>
-                            <td className="p-3">
+                          <tr key={prod.id} className={`hover:bg-slate-50/50 transition-all ${prod.is_featured ? 'bg-amber-50/30' : ''}`}>
+                            <td className="p-4">
                               <div className="flex items-center gap-3">
-                                <img src={prod.image} alt="" className="w-9 h-9 object-cover rounded-lg border bg-white" onError={(e) => e.target.src='https://unsplash.com'} />
+                                <img src={prod.image || 'https://unsplash.com'} alt="" className="w-10 h-10 object-cover rounded-lg border bg-white" onError={(e) => { e.currentTarget.src = 'https://unsplash.com'; }} />
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-900 truncate">{prod.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono">SKU: {prod.article_no || 'N/A'}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4">{prod.category || 'Uncategorized'}</td>
+                            <td className="p-4 font-mono font-bold text-slate-900">{parseFloat(prod.price_omr || 0).toFixed(3)} OMR</td>
+                            <td className="p-4">
+                              <span className={`font-bold ${Number(prod.inventory) > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {Number(prod.inventory) > 0 ? `${prod.inventory} in stock` : 'Out of stock'}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex justify-center gap-2">
+                                <button type="button" onClick={() => handleEditTrigger(prod)} className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg" aria-label="Edit product">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => handleDelete(prod.id, 'products')} className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg" aria-label="Delete product">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </td>
                           </tr>
                         ))
                       )}
                     </tbody>
-
                   </table>
                 </div>
               </div>
             </div>
           )}
-
-          {/* TAB 1: Advanced Orders Tracker */}
-          {activeTab === 'orders' && (
-            <div className="space-y-4">
-              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div>
-                  <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest flex items-center gap-1">
-                    <ClipboardList className="w-4 h-4 text-[#ff4d00]" /> Orders ERP Command Station
-                  </h3>
+          {/* Detailed Order Popup Specs Modal Overlay Box With Dynamic Print Node */}
+          {selectedOrderNode && activeTab === 'orders' && (
+            <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white border rounded-xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
+                <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                  <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-[#ff4d00]">Invoice Specification Sheet</h4>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const originalDocumentTitle = document.title;
+                        document.title = `Zonix_Mart_Invoice_#${selectedOrderNode.id}`;
+                        window.print();
+                        document.title = originalDocumentTitle;
+                      }}
+                      className="text-[10px] bg-slate-900 text-white font-black uppercase px-3 py-1.5 rounded-lg hover:bg-[#ff4d00] transition-all cursor-pointer outline-none shadow-2xs"
+                    >
+                      Download PDF Invoice
+                    </button>
+                    <button type="button" onClick={() => setSelectedOrderNode(null)} className="text-[10px] bg-slate-200 text-slate-700 font-black uppercase px-2.5 py-1 rounded-lg outline-none">Close</button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="p-5 overflow-y-auto space-y-4 text-xs bg-white">
+                  <div className="p-3 bg-slate-50 border rounded-xl space-y-1">
+                    <div><span className="text-[9px] font-black uppercase text-slate-400 block">Customer Name</span><p className="font-bold text-slate-900 capitalize text-sm">{selectedOrderNode.customer_name}</p></div>
+                    <div className="pt-2"><span className="text-[9px] font-black uppercase text-slate-400 block">Oman Mobile Vector</span><p className="font-mono text-slate-800 font-bold">{selectedOrderNode.customer_phone}</p></div>
+                    <div className="pt-2"><span className="text-[9px] font-black uppercase text-slate-400 block">Order Timestamp</span><p className="font-mono text-slate-500">{selectedOrderNode.created_at ? new Date(selectedOrderNode.created_at).toLocaleString() : 'N/A'}</p></div>
+                  </div>
+                  <div className="p-3 bg-slate-50 border rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Shipping Destination</span>
+                    <p className="text-slate-700 leading-relaxed bg-white border p-2 rounded-lg font-medium">{selectedOrderNode.customer_address}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block pl-1">Products Pack Matrix</span>
+                    {((selectedOrderNode.product_name || '').split(',')).map((name, i) => {
+                      const imageArray = (selectedOrderNode.product_image || '').split(',');
+                      const rawImage = imageArray[i] ? imageArray[i].trim() : '';
+                      const finalImageSrc = rawImage !== '' ? rawImage : 'https://unsplash.com';
+                      return (
+                        <div key={i} className="bg-slate-50 border p-2.5 rounded-xl flex items-center gap-3">
+                          <img src={finalImageSrc} alt="" className="w-9 h-9 object-cover rounded-lg border bg-white" onError={(e)=>{e.target.src='https://unsplash.com';}} />
+                          <div className="min-w-0 flex-1"><div className="font-bold text-slate-900 text-xs truncate">{name.trim()}</div></div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-slate-800">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">Gross Payable Amount</span>
+                    <span className="font-mono text-sm text-emerald-600">{parseFloat(selectedOrderNode.total_price_omr || 0).toFixed(3)} OMR</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 1: Advanced Orders Tracker Component */}
+          {activeTab === 'orders' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <h3 className="font-black text-xs text-slate-800 uppercase tracking-widest flex items-center gap-1">
+                  <ClipboardList className="w-4 h-4 text-[#ff4d00]" /> Orders Live Tracking Folio
+                </h3>
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
                   <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-xl text-xs w-full sm:w-auto">
                     <Calendar className="w-3.5 h-3.5 text-[#ff4d00]" />
-                    <input type="date" value={orderDateFilter} onChange={e => setOrderDateFilter(e.target.value)} className="bg-transparent text-slate-700 outline-none text-xs cursor-pointer" />
+                    <input type="date" value={orderDateFilter} onChange={e => setOrderDateFilter(e.target.value)} className="bg-transparent text-slate-700 outline-none text-xs cursor-pointer w-full" />
                   </div>
                   <div className="relative w-full sm:w-64">
-                    <input type="text" value={orderSearchQuery} onChange={e => setOrderSearchQuery(e.target.value)} placeholder="Search Token ID or Name..." className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#ff4d00] focus:bg-white pl-8 text-slate-800" />
+                    <input type="text" value={orderSearchQuery} onChange={e => setOrderSearchQuery(e.target.value)} placeholder="Search Order ID or Name..." className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#ff4d00] focus:bg-white pl-8 text-slate-800" />
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+              {/* Top Filtering Phase Status Buttons Grid */}
+              <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl">
                 {[
-                  { id: 'all', label: 'All Cluster' },
-                  { id: 'pending', label: 'Pending COD' },
+                  { id: 'all', label: 'All Orders' },
+                  { id: 'pending', label: 'Pending' },
                   { id: 'live', label: 'Live' },
                   { id: 'complete', label: 'Completed' },
                   { id: 'cancel', label: 'Cancelled' }
                 ].map((btn) => (
-                  <button key={btn.id} type="button" onClick={() => setStatusFilter(btn.id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${statusFilter === btn.id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>{btn.label}</button>
+                  <button key={btn.id} type="button" onClick={() => setStatusFilter(btn.id)} className={`flex-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${statusFilter === btn.id ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>{btn.label}</button>
                 ))}
               </div>
-            {/* Orders Data Table Node */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-              <div className="overflow-x-auto w-full">
-                <table className="w-full text-left border-collapse min-w-[850px]">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-200">
-                      <th className="p-3 w-16">Token ID</th>
-                      <th className="p-3">Customer Credentials</th>
-                      <th className="p-3">Route Address</th>
-                      <th className="p-3">Live Geo Link</th>
-                      <th className="p-3">Flow Status</th>
-                      <th className="p-3">Invoice Price</th>
-                      <th className="p-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs text-slate-600">
-                    {(() => {
+
+              {/* Master Orders Data Grid View */}
+              <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left border-collapse min-w-[850px]">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-200">
+                        <th className="p-3 w-16">Token ID</th>
+                        <th className="p-3">Customer Credentials</th>
+                        <th className="p-3">Route Address</th>
+                        <th className="p-3">Live Geo Link</th>
+                        <th className="p-3">Flow Status</th>
+                        <th className="p-3">Invoice Price</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
                       let filtered = [...orders];
                       
                       if (orderDateFilter) {
@@ -728,7 +911,7 @@ export default function AdminDashboardStation() {
                         return (<tr><td colSpan="7" className="p-6 text-center text-xs font-bold text-slate-400 uppercase">No customer checkout registries match.</td></tr>);
                       }
 
-                      return filtered.map((ord) => (
+                       return filtered.map((ord) => (
                         <tr key={ord.id} className="hover:bg-slate-50/50 transition-all">
                           <td className="p-3 font-mono font-black text-[#ff4d00]">#{ord.id}</td>
                           <td className="p-3">
@@ -946,10 +1129,26 @@ export default function AdminDashboardStation() {
           {selectedOrderNode && (
             <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
               <div className="bg-white border rounded-xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
-                <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                                <div className="p-4 border-b flex justify-between items-center bg-slate-50">
                   <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-[#ff4d00]">Invoice Specification Sheet</h4>
-                  <button type="button" onClick={() => setSelectedOrderNode(null)} className="text-[10px] bg-slate-200 text-slate-700 font-black uppercase px-2.5 py-1 rounded-lg outline-none">Close</button>
+                  <div className="flex items-center gap-2">
+                    {/* Dynamic Print & Download PDF Trigger Engine Node */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const originalDocumentTitle = document.title;
+                        document.title = `Zonix_Mart_Invoice_#${selectedOrderNode.id}`;
+                        window.print();
+                        document.title = originalDocumentTitle;
+                      }}
+                      className="text-[10px] bg-slate-900 hover:bg-[#ff4d00] text-white font-black uppercase px-3 py-1.5 rounded-lg transition-all cursor-pointer outline-none shadow-2xs relative z-50"
+                    >
+                      Download PDF Invoice
+                    </button>
+                    <button type="button" onClick={() => setSelectedOrderNode(null)} className="text-[10px] bg-slate-200 text-slate-700 font-black uppercase px-2.5 py-1 rounded-lg outline-none">Close</button>
+                  </div>
                 </div>
+
                 <div className="p-5 overflow-y-auto space-y-4 text-xs bg-white">
                   <div className="p-3 bg-slate-50 border rounded-xl space-y-1">
                     <div><span className="text-[9px] font-black uppercase text-slate-400 block">Customer Name</span><p className="font-bold text-slate-900 capitalize text-sm">{selectedOrderNode.customer_name}</p></div>
